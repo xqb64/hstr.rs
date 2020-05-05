@@ -31,9 +31,7 @@ impl UserInterface {
 
     pub fn populate_screen(&self, app: &Application) {
         clear();
-        let entries = self.get_page(
-            &app.all_entries.as_ref().unwrap().get(&app.view).unwrap()
-        );
+        let entries = self.get_page(app.get_entries(app.view));
         for (index, entry) in entries.iter().enumerate() {
             mvaddstr(index as i32 + 3, 0, &format!(" {1:0$}", COLS() as usize - 1, entry));
             let substring_indexes = self.get_substring_indexes(&entry, &app.search_string);
@@ -48,7 +46,7 @@ impl UserInterface {
                     }
                 }
             }
-            if app.all_entries.as_ref().unwrap().get(&1).unwrap().contains(&entry) {
+            if app.get_entries(1).contains(&entry) {
                 attron(COLOR_PAIR(4));
                 mvaddstr(index as i32 + 3, 0, &format!(" {1:0$}", COLS() as usize - 1, entry));
                 attroff(COLOR_PAIR(4));
@@ -64,9 +62,7 @@ impl UserInterface {
             self.display("match", app.match_),
             self.display("case", app.case_sensitivity),
             self.page,
-            self.total_pages(
-                &app.all_entries.as_ref().unwrap().get(&app.view).unwrap()
-            ) 
+            self.total_pages(app.get_entries(app.view)) 
         );
         mvaddstr(1, 0, LABEL);
         attron(COLOR_PAIR(3));
@@ -91,10 +87,7 @@ impl UserInterface {
         }
     }
 
-    pub fn get_selected(&self, app: &Application) -> String {
-        let entries = self.get_page(
-            &app.all_entries.as_ref().unwrap().get(&app.view).unwrap()
-        );
+    pub fn get_selected(&self, entries: &Vec<String>) -> String {
         String::from(self.get_page(&entries).get(self.selected as usize).unwrap())
     }
 
@@ -127,17 +120,11 @@ impl UserInterface {
     }
 
     fn get_substring_indexes<'a>(&self, string: &'a str, substring: &'a str) -> Vec<usize> {
-        let mut pairs = Vec::new();
-        for mat in Regex::new(substring).unwrap().find_iter(string) {
-            pairs.push((mat.start(), mat.end()));
-        }
-        let mut indexes = Vec::new();
-        for (start, end) in pairs.iter() {
-            for i in *start..*end {
-                indexes.push(i);
-            }
-        }
-        indexes
+        Regex::new(substring)
+            .unwrap()
+            .find_iter(string)
+            .flat_map(|mat| mat.range())
+            .collect()
     }
 
     fn turn_page(&mut self, all_entries: &Vec<String>, direction: i32) {
