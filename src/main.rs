@@ -20,22 +20,22 @@ fn main() {
                 match ch {
                     5 => { // C-e
                         app.toggle_match();
-                        user_interface.selected = 0;
+                        user_interface.set_selected(0);
                         user_interface.populate_screen(&app);
                     },
                     6 => { // C-f
-                        let entries = app.get_entries(app.view);
+                        let entries = app.get_entries(app.view());
                         let command = user_interface.get_selected(&entries);
                         app.add_to_or_remove_from_favorites(command);
                     },
                     9 => { // TAB
-                        let entries = app.get_entries(app.view);
+                        let entries = app.get_entries(app.view());
                         let command = user_interface.get_selected(&entries);
                         util::echo(command);
                         break;
                     },
                     10 => { // ENTER ("\n")
-                    let entries = app.get_entries(app.view);
+                    let entries = app.get_entries(app.view());
                     let command = user_interface.get_selected(&entries);
                         util::echo(command);
                         util::echo("\n".to_string());
@@ -48,13 +48,15 @@ fn main() {
                     27 => break, // ESC
                     31 => { // C-/
                         app.toggle_view();
-                        user_interface.selected = 0;
+                        user_interface.set_selected(0);
                         user_interface.populate_screen(&app);
                     }
                     _ => {
-                        app.search_string += &std::char::from_u32(ch as u32).unwrap().to_string();
-                        user_interface.selected = 0;
-                        user_interface.page = 1;               
+                        let mut ss = String::from(app.search_string());
+                        ss.push(std::char::from_u32(ch as u32).unwrap());
+                        app.set_search_string(&ss);
+                        user_interface.set_selected(0);
+                        user_interface.set_page(1);               
                         app.search();
                         user_interface.populate_screen(&app);
                     },
@@ -63,28 +65,30 @@ fn main() {
             WchResult::KeyCode(code) => {
                 match code {
                     KEY_UP => {
-                        let entries = app.get_entries(app.view);
+                        let entries = app.get_entries(app.view());
                         user_interface.move_selected(entries, -1);
                         user_interface.populate_screen(&app);
                     },
                     KEY_DOWN => {
-                        let entries = app.get_entries(app.view);
+                        let entries = app.get_entries(app.view());
                         user_interface.move_selected(entries, 1);
                         user_interface.populate_screen(&app);
                     },
                     KEY_BACKSPACE => {
-                        app.search_string.pop();
-                        app.all_entries = app.to_restore.clone();
+                        let mut ss = String::from(app.search_string());
+                        ss.pop();
+                        app.set_search_string(&ss);
+                        app.set_all_entries(app.to_restore().clone());
                         app.search();
                         user_interface.populate_screen(&app);
                     },
                     KEY_DC => {
-                        let entries = app.get_entries(app.view);
+                        let entries = app.get_entries(app.view());
                         let command = user_interface.get_selected(&entries);
                         user_interface.prompt_for_deletion(&command);
                         app.delete_from_history(command);
                         app = app::Application::new(
-                            app.view, app.match_, app.case_sensitivity, app.search_string
+                            app.view(), app.match_(), app.case_sensitivity(), String::from(app.search_string())
                         );
                         user_interface.populate_screen(&app);
                     }

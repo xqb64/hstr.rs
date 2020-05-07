@@ -6,8 +6,8 @@ use crate::util::{modulo, get_shell_prompt};
 const LABEL: &str = "Type to filter, UP/DOWN move, RET/TAB select, DEL remove, ESC quit, C-f add/rm fav";
 
 pub struct UserInterface {
-    pub page: i32,
-    pub selected: i32
+    page: i32,
+    selected: i32
 }
 
 impl UserInterface {
@@ -17,6 +17,14 @@ impl UserInterface {
             page: 1,
             selected: 0
          }
+    }
+
+    pub fn set_page(&mut self, val: i32) {
+        self.page = val;
+    }
+
+    pub fn set_selected(&mut self, val: i32) {
+        self.selected = val;
     }
 
     pub fn init_color_pairs(&self) {
@@ -31,10 +39,10 @@ impl UserInterface {
 
     pub fn populate_screen(&self, app: &Application) {
         clear();
-        let entries = self.get_page(app.get_entries(app.view));
+        let entries = self.get_page(app.get_entries(app.view()));
         for (index, entry) in entries.iter().enumerate() {
             mvaddstr(index as i32 + 3, 0, &format!(" {1:0$}", COLS() as usize - 1, entry));
-            let substring_indexes = self.get_substring_indexes(&entry, &app.search_string);
+            let substring_indexes = self.get_substring_indexes(&entry, &app.search_string());
             if !substring_indexes.is_empty() {
                 for (idx, letter) in entry.chars().enumerate() {
                     if substring_indexes.contains(&idx) {
@@ -58,17 +66,17 @@ impl UserInterface {
             }
         }
         let status = format!(" - view:{} (C-/) - match: {} (C-e) - case:{} (C-t) - page {}/{} -",
-            self.display("view", app.view),
-            self.display("match", app.match_),
-            self.display("case", app.case_sensitivity),
+            self.display("view", app.view()),
+            self.display("match", app.match_()),
+            self.display("case", app.case_sensitivity()),
             self.page,
-            self.total_pages(app.get_entries(app.view)) 
+            self.total_pages(app.get_entries(app.view())) 
         );
         mvaddstr(1, 0, LABEL);
         attron(COLOR_PAIR(3));
         mvaddstr(2, 0, &format!("{1:0$}", COLS() as usize, status));
         attroff(COLOR_PAIR(3));
-        mvaddstr(0, 0, &format!("{} {}", get_shell_prompt(), app.search_string));
+        mvaddstr(0, 0, &format!("{} {}", get_shell_prompt(), app.search_string()));
     }
 
     pub fn move_selected(&mut self, all_entries: &Vec<String>, direction: i32) {
