@@ -15,9 +15,7 @@ sudo apt install libncurses5 libncurses5-dev libncursesw5 libncursesw5-dev
 Then run:
 ​
 ```bash
-git clone https://github.com/xvm32/hstr-rs.git
-cd hstr-rs
-cargo install --path .
+cargo install --git https://github.com/xvm32/hstr-rs.git
 ```
 ​
 ## Usage
