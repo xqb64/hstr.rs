@@ -82,16 +82,21 @@ impl UserInterface {
     pub fn move_selected(&mut self, entries: &[String], direction: i32) {
         let page_size = self.get_page_size(entries);
         self.selected += direction;
-        self.selected = i32::rem_euclid(self.selected, page_size);
-        if direction == 1 {
-            if self.selected == 0 {
-                self.turn_page(entries, 1);
-            }    
-        } else if direction == -1 {
-            if self.selected == (page_size - 1) {
-                self.turn_page(entries, -1);
-                self.selected = self.get_page_size(entries) - 1;
-            }    
+        match i32::checked_rem_euclid(self.selected, page_size) {
+            Some(x) => {
+                self.selected = x;
+                if direction == 1 {
+                    if self.selected == 0 {
+                        self.turn_page(entries, 1);
+                    }
+                } else if direction == -1 {
+                    if self.selected == (page_size - 1) {
+                        self.turn_page(entries, -1);
+                        self.selected = self.get_page_size(entries) - 1;
+                    }
+                }
+            },
+            None => return
         }
     }
 
