@@ -1,10 +1,10 @@
-use std::collections::HashMap;
 use std::cmp::Eq;
+use std::collections::HashMap;
 use std::hash::Hash;
 
 pub fn sort<T>(mut entries: Vec<T>) -> Vec<T>
 where
-    T: Clone + Eq + Hash
+    T: Clone + Eq + Hash,
 {
     let freq_map = frequency_map(&entries);
     let pos_map = position_map(&entries);
@@ -16,7 +16,7 @@ where
 
 fn frequency_map<T>(entries: &[T]) -> HashMap<T, usize>
 where
-    T: Clone + Eq + Hash
+    T: Clone + Eq + Hash,
 {
     let mut map = HashMap::new();
     for e in entries.iter() {
@@ -27,7 +27,7 @@ where
 
 fn position_map<T>(entries: &[T]) -> HashMap<T, usize>
 where
-    T: Clone + Eq + Hash
+    T: Clone + Eq + Hash,
 {
     let mut map = HashMap::new();
     for (pos, e) in entries.iter().enumerate() {

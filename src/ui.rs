@@ -1,22 +1,22 @@
-use ncurses::*;
-use regex::Regex;
 use crate::app::Application;
 use crate::util::get_shell_prompt;
+use ncurses::*;
+use regex::Regex;
 
-const LABEL: &str = "Type to filter, UP/DOWN move, RET/TAB select, DEL remove, ESC quit, C-f add/rm fav";
+const LABEL: &str =
+    "Type to filter, UP/DOWN move, RET/TAB select, DEL remove, ESC quit, C-f add/rm fav";
 
 pub struct UserInterface {
     page: i32,
-    selected: i32
+    selected: i32,
 }
 
 impl UserInterface {
-
     pub fn new() -> Self {
         Self {
             page: 1,
-            selected: 0
-         }
+            selected: 0,
+        }
     }
 
     pub fn set_page(&mut self, val: i32) {
@@ -41,7 +41,11 @@ impl UserInterface {
         clear();
         let entries = self.get_page(app.get_entries(app.view()));
         for (index, entry) in entries.iter().enumerate() {
-            mvaddstr(index as i32 + 3, 0, &format!(" {1:0$}", COLS() as usize - 1, entry));
+            mvaddstr(
+                index as i32 + 3,
+                0,
+                &format!(" {1:0$}", COLS() as usize - 1, entry),
+            );
             let substring_indexes = self.get_substring_indexes(&entry, &app.search_string());
             if !substring_indexes.is_empty() {
                 for (idx, letter) in entry.chars().enumerate() {
@@ -56,27 +60,40 @@ impl UserInterface {
             }
             if app.get_entries(1).contains(&entry) {
                 attron(COLOR_PAIR(4));
-                mvaddstr(index as i32 + 3, 0, &format!(" {1:0$}", COLS() as usize - 1, entry));
+                mvaddstr(
+                    index as i32 + 3,
+                    0,
+                    &format!(" {1:0$}", COLS() as usize - 1, entry),
+                );
                 attroff(COLOR_PAIR(4));
             }
             if index == self.selected as usize {
                 attron(COLOR_PAIR(2));
-                mvaddstr(index as i32 + 3, 0, &format!(" {1:0$}", COLS() as usize - 1, entry));
+                mvaddstr(
+                    index as i32 + 3,
+                    0,
+                    &format!(" {1:0$}", COLS() as usize - 1, entry),
+                );
                 attroff(COLOR_PAIR(2));
             }
         }
-        let status = format!(" - view:{} (C-/) - match:{} (C-e) - case:{} (C-t) - page {}/{} -",
+        let status = format!(
+            " - view:{} (C-/) - match:{} (C-e) - case:{} (C-t) - page {}/{} -",
             self.display_view(app.view()),
             self.display_match(app.regex_match()),
             self.display_case(app.case_sensitivity()),
             self.page,
-            self.total_pages(app.get_entries(app.view())) 
+            self.total_pages(app.get_entries(app.view()))
         );
         mvaddstr(1, 0, LABEL);
         attron(COLOR_PAIR(3));
         mvaddstr(2, 0, &format!("{1:0$}", COLS() as usize, status));
         attroff(COLOR_PAIR(3));
-        mvaddstr(0, 0, &format!("{} {}", get_shell_prompt(), app.search_string()));
+        mvaddstr(
+            0,
+            0,
+            &format!("{} {}", get_shell_prompt(), app.search_string()),
+        );
     }
 
     pub fn move_selected(&mut self, entries: &[String], direction: i32) {
@@ -95,8 +112,8 @@ impl UserInterface {
                         self.selected = self.get_page_size(entries) - 1;
                     }
                 }
-            },
-            None => return
+            }
+            None => return,
         }
     }
 
@@ -109,7 +126,7 @@ impl UserInterface {
             0 => "sorted",
             1 => "favorites",
             2 => "history",
-            _ => "n/a"
+            _ => "n/a",
         }
     }
 
@@ -131,11 +148,11 @@ impl UserInterface {
         let regex = Regex::new(substring);
         let bla = match regex {
             Ok(r) => r,
-            Err(_) => { return vec![]; }
+            Err(_) => {
+                return vec![];
+            }
         };
-        let indexes = bla.find_iter(string)
-            .flat_map(|mat| mat.range())
-            .collect();
+        let indexes = bla.find_iter(string).flat_map(|mat| mat.range()).collect();
         indexes
     }
 
@@ -148,9 +165,12 @@ impl UserInterface {
     }
 
     fn get_page(&self, entries: &[String]) -> Vec<String> {
-        match entries.chunks(LINES() as usize - 3).nth(self.page as usize - 1) { 
+        match entries
+            .chunks(LINES() as usize - 3)
+            .nth(self.page as usize - 1)
+        {
             Some(val) => val.to_vec(),
-            None => Vec::new()
+            None => Vec::new(),
         }
     }
 

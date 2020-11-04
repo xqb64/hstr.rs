@@ -1,6 +1,6 @@
 [package]
 name = "hstr-rs"
-version = "0.1.2"
+version = "0.1.3"
 authors = ["xvm32 <xvm32@users.noreply.github.com>"]
 edition = "2018"
 
@@ -12,3 +12,4 @@ libc = "0.2"
 dirs = "2.0.2"
 regex = "1"
 gethostname = "0.2.1"
+setenv = "0.1"

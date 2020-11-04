@@ -1,8 +1,8 @@
+use libc::{ioctl, TIOCSTI};
 use std::env;
-use std::fs::{create_dir_all, File, write};
+use std::fs::{create_dir_all, write, File};
 use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
-use libc::{ioctl, TIOCSTI};
 
 pub fn read_file(path: &str) -> Result<Vec<String>, std::io::Error> {
     let p = dirs::home_dir().unwrap().join(PathBuf::from(path));
@@ -26,7 +26,7 @@ pub fn write_file(path: &str, thing: &Vec<String>) {
 pub fn echo(command: String) {
     unsafe {
         for byte in command.as_bytes() {
-            ioctl(0, TIOCSTI, byte); 
+            ioctl(0, TIOCSTI, byte);
         }
     }
 }

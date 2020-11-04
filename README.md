@@ -1,33 +1,32 @@
 # hstr-rs
 
-**hstr** is bash history suggest box. Like hstr, but with pages.
+**hstr** is shell history suggest box. Like hstr, but with pages.
+
+It was initially made for bash, but it supports zsh and ksh, too. If you want to use it with tcsh, make sure tcsh saves its history to `~/.tcsh_history`.
 ​
-## Install hstr
+## Installation
 ​
 Make sure you have ncurses packages installed.
 ​
-On Ubuntu, run:
-​
-```bash
+```
 sudo apt install libncurses5 libncurses5-dev libncursesw5 libncursesw5-dev
 ```
 ​
 Then run:
 ​
-```bash
+```
 cargo install --git https://github.com/xvm32/hstr-rs.git
 ```
 ​
 ## Usage
 ​
-You can make an alias in your `.bashrc`:
+Making an alias should be the most convenient option:
 
-```bash
+```sh
 alias hh=hstr-rs
 ```
 ​
-![screenshot](hstr-rs.gif)
-​
-### FIXME:
+## Screencast
 
-- config script
+![screenshot](hstr-rs.gif)
+

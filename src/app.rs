@@ -1,17 +1,16 @@
-use ncurses::*;
-use regex::{escape, Regex, RegexBuilder};
 use crate::sort::sort;
 use crate::util::{read_file, write_file};
+use ncurses::*;
+use regex::{escape, Regex, RegexBuilder};
+use setenv::get_shell;
 
-const HISTORY: &str = ".bash_history";
-const FAVORITES: &str = ".config/hstr-rs/favorites";
 const Y: i32 = 121;
 
 #[derive(Clone)]
 pub struct Entries {
     all: Vec<String>,
     sorted: Vec<String>,
-    favorites: Vec<String>
+    favorites: Vec<String>,
 }
 
 pub struct Application {
@@ -20,25 +19,24 @@ pub struct Application {
     view: u8,
     regex_match: bool,
     case_sensitivity: bool,
-    search_string: String
+    search_string: String,
 }
 
 impl Application {
-
     pub fn new(view: u8, regex_match: bool, case_sensitivity: bool, search_string: String) -> Self {
-        let history = read_file(HISTORY).unwrap();
+        let history = read_file(&format!(".{}_history", get_shell().get_name())).unwrap();
         let all_entries = Entries {
             all: history.clone(),
             sorted: sort(history.clone()),
-            favorites: read_file(FAVORITES).unwrap()
+            favorites: read_file(&format!(".config/hstr-rs/.{}_favorites", get_shell().get_name())).unwrap(),
         };
-        Self { 
+        Self {
             all_entries: all_entries.clone(),
             to_restore: all_entries.clone(),
             view,
             regex_match,
             case_sensitivity,
-            search_string
+            search_string,
         }
     }
 
@@ -74,7 +72,7 @@ impl Application {
             0 => &mut self.all_entries.sorted,
             1 => &mut self.all_entries.favorites,
             2 => &mut self.all_entries.all,
-            _ => &mut self.all_entries.sorted
+            _ => &mut self.all_entries.sorted,
         }
     }
 
@@ -83,51 +81,49 @@ impl Application {
             0 => &self.all_entries.sorted,
             1 => &self.all_entries.favorites,
             2 => &self.all_entries.all,
-            _ => &self.all_entries.sorted
+            _ => &self.all_entries.sorted,
         }
     }
 
     fn create_search_string_regex(&self) -> Option<Regex> {
         match self.case_sensitivity {
-            true => {
-                match self.regex_match {
-                    true => {
-                        let regex = Regex::new(&self.search_string);
-                        match regex {
-                            Ok(r) => Some(r),
-                            Err(_) => None
-                        }
-                    },
-                    false => Some(Regex::new(&escape(&self.search_string)).unwrap())
-                }
-            },
-            false => {
-                match self.regex_match {
-                    true => {
-                        let regex = RegexBuilder::new(&self.search_string)
-                            .case_insensitive(true)
-                            .build();
-                        match regex {
-                            Ok(r) => Some(r),
-                            Err(_) => None 
-                        }
-                    },
-                    false => {
-                        let regex = RegexBuilder::new(&escape(&self.search_string))
-                            .case_insensitive(true)
-                            .build()
-                            .unwrap();
-                        return Some(regex);
+            true => match self.regex_match {
+                true => {
+                    let regex = Regex::new(&self.search_string);
+                    match regex {
+                        Ok(r) => Some(r),
+                        Err(_) => None,
                     }
                 }
-            }
+                false => Some(Regex::new(&escape(&self.search_string)).unwrap()),
+            },
+            false => match self.regex_match {
+                true => {
+                    let regex = RegexBuilder::new(&self.search_string)
+                        .case_insensitive(true)
+                        .build();
+                    match regex {
+                        Ok(r) => Some(r),
+                        Err(_) => None,
+                    }
+                }
+                false => {
+                    let regex = RegexBuilder::new(&escape(&self.search_string))
+                        .case_insensitive(true)
+                        .build()
+                        .unwrap();
+                    return Some(regex);
+                }
+            },
         }
     }
 
     pub fn search(&mut self) {
         let search_string_regex = match self.create_search_string_regex() {
             Some(r) => r,
-            None => { return; }
+            None => {
+                return;
+            }
         };
         self.get_entries_mut(self.view)
             .retain(|x| search_string_regex.is_match(x));
@@ -140,7 +136,7 @@ impl Application {
         } else {
             favorites.retain(|x| x != &command);
         }
-        write_file(FAVORITES, &favorites);
+        write_file(&format!(".config/hstr-rs/.{}_favorites", get_shell().get_name()), &favorites);
     }
 
     pub fn delete_from_history(&mut self, command: String) {
@@ -149,8 +145,11 @@ impl Application {
             Y => {
                 let all_history = self.get_entries_mut(2);
                 all_history.retain(|x| x != &command);
-                write_file(HISTORY, &all_history);
-            },
+                write_file(
+                    &format!(".{}_history", get_shell().get_name()),
+                    &all_history,
+                );
+            }
             _ => {}
         }
     }
