@@ -1,4 +1,4 @@
-use crate::app::Application;
+use crate::app::{Application, View};
 use crate::util::get_shell_prompt;
 use ncurses::*;
 use regex::Regex;
@@ -19,12 +19,12 @@ impl UserInterface {
         }
     }
 
-    pub fn set_page(&mut self, val: i32) {
-        self.page = val;
+    pub fn set_page(&mut self, v: i32) {
+        self.page = v;
     }
 
-    pub fn set_selected(&mut self, val: i32) {
-        self.selected = val;
+    pub fn set_selected(&mut self, v: i32) {
+        self.selected = v;
     }
 
     pub fn init_color_pairs(&self) {
@@ -39,14 +39,14 @@ impl UserInterface {
 
     pub fn populate_screen(&self, app: &Application) {
         clear();
-        let entries = self.get_page(app.get_entries(app.view()));
-        for (index, entry) in entries.iter().enumerate() {
+        let commands = self.get_page(app.get_commands());
+        for (index, entry) in commands.iter().enumerate() {
             mvaddstr(
                 index as i32 + 3,
-                0,
-                &format!(" {1:0$}", COLS() as usize - 1, entry),
+                1,
+                &format!("{1:0$}", COLS() as usize - 1, entry),
             );
-            let substring_indexes = self.get_substring_indexes(&entry, &app.search_string());
+            let substring_indexes = self.get_substring_indexes(&entry, &app.search_string);
             if !substring_indexes.is_empty() {
                 for (idx, letter) in entry.chars().enumerate() {
                     if substring_indexes.contains(&idx) {
@@ -58,12 +58,12 @@ impl UserInterface {
                     }
                 }
             }
-            if app.get_entries(1).contains(&entry) {
+            if app.get_commands().contains(&entry) {
                 attron(COLOR_PAIR(4));
                 mvaddstr(
                     index as i32 + 3,
-                    0,
-                    &format!(" {1:0$}", COLS() as usize - 1, entry),
+                    1,
+                    &format!("{1:0$}", COLS() as usize - 1, entry),
                 );
                 attroff(COLOR_PAIR(4));
             }
@@ -71,118 +71,151 @@ impl UserInterface {
                 attron(COLOR_PAIR(2));
                 mvaddstr(
                     index as i32 + 3,
-                    0,
-                    &format!(" {1:0$}", COLS() as usize - 1, entry),
+                    1,
+                    &format!("{1:0$}", COLS() as usize - 1, entry),
                 );
                 attroff(COLOR_PAIR(2));
             }
         }
-        let status = format!(
-            " - view:{} (C-/) - match:{} (C-e) - case:{} (C-t) - page {}/{} -",
-            self.display_view(app.view()),
-            self.display_match(app.regex_match()),
-            self.display_case(app.case_sensitivity()),
-            self.page,
-            self.total_pages(app.get_entries(app.view()))
-        );
-        mvaddstr(1, 0, LABEL);
+        mvaddstr(1, 1, LABEL);
         attron(COLOR_PAIR(3));
-        mvaddstr(2, 0, &format!("{1:0$}", COLS() as usize, status));
+        mvaddstr(
+            2,
+            1,
+            &format!(
+                "{1:0$}",
+                COLS() as usize - 1,
+                format!(
+                    "- view:{} (C-/) - regex:{} (C-e) - case:{} (C-t) - page {}/{} -",
+                    self.display_view(app.view),
+                    self.display_regex_mode(app.regex_mode),
+                    self.display_case(app.case_sensitivity),
+                    self.page,
+                    self.total_pages(app.get_commands())
+                )
+            ),
+        );
         attroff(COLOR_PAIR(3));
         mvaddstr(
             0,
-            0,
-            &format!("{} {}", get_shell_prompt(), app.search_string()),
+            1,
+            &format!("{} {}", get_shell_prompt(), app.search_string),
         );
     }
 
-    pub fn move_selected(&mut self, entries: &[String], direction: i32) {
-        let page_size = self.get_page_size(entries);
+    pub fn turn_page(&mut self, commands: &[String], direction: i32) {
+        // Turning the page essentially works as follows:
+        //
+        // We are getting the potential page by subtracting 1
+        // from the page number, because pages are 1-based, and
+        // we need them to be 0-based for the calculation to work.
+        // Then we apply the direction which is always +1 or -1.
+        //
+        // We then use the remainder part of Euclidean division of
+        // potential page over total number of pages, in order to
+        // wrap the page number around the total number of pages.
+        //
+        // This means that if we are on page 4, and there are 4 pages in total,
+        // the command to go to the next page would result in rem(4, 4),
+        // which is 0, and by adjusting the page number to be 1-based,
+        // we get back to page 1, as desired.
+        //
+        // This also works in the opposite direction:
+        //
+        // If there are 4 total pages, and we are on page 1, and we issue
+        // the command to go to the previous page, we are doing: rem(-1, 4),
+        // which is 3. By adjusting the page number to be 1-based,
+        // we get to the 4th page.
+        //
+        // The total number of pages being 0, which is the case when there
+        // are no commands in the history, means that we are dividing by 0,
+        // which is undefined, and rem() returns None, which means that we are
+        // on page 1.
+
+        let potential_page = self.page - 1 + direction;
+        self.page = match i32::checked_rem_euclid(potential_page, self.total_pages(commands)) {
+            Some(x) => x + 1,
+            None => 1,
+        }
+    }
+
+    pub fn move_selected(&mut self, commands: &[String], direction: i32) {
+        let page_size = self.get_page_size(commands);
         self.selected += direction;
-        match i32::checked_rem_euclid(self.selected, page_size) {
-            Some(x) => {
-                self.selected = x;
-                if direction == 1 {
-                    if self.selected == 0 {
-                        self.turn_page(entries, 1);
-                    }
-                } else if direction == -1 {
-                    if self.selected == (page_size - 1) {
-                        self.turn_page(entries, -1);
-                        self.selected = self.get_page_size(entries) - 1;
-                    }
-                }
+        if let Some(x) = i32::checked_rem_euclid(self.selected, page_size) {
+            self.selected = x;
+            if direction == 1 && self.selected == 0 {
+                self.turn_page(commands, 1);
+            } else if direction == -1 && self.selected == (page_size - 1) {
+                self.turn_page(commands, -1);
+                self.selected = self.get_page_size(commands) - 1;
             }
-            None => return,
         }
     }
 
-    pub fn get_selected(&self, entries: &[String]) -> String {
-        String::from(self.get_page(&entries).get(self.selected as usize).unwrap())
+    pub fn get_selected(&self, commands: &[String]) -> String {
+        String::from(
+            self.get_page(&commands)
+                .get(self.selected as usize)
+                .unwrap(),
+        )
     }
 
-    fn display_view(&self, value: u8) -> &str {
-        match value {
-            0 => "sorted",
-            1 => "favorites",
-            2 => "history",
-            _ => "n/a",
-        }
+    pub fn prompt_for_deletion(&self, command: &str) {
+        mvaddstr(1, 0, &format!("{1:0$}", COLS() as usize, ""));
+        attron(COLOR_PAIR(6));
+        mvaddstr(
+            1,
+            1,
+            &format!("Do you want to delete all occurences of {}? y/n", command),
+        );
+        attroff(COLOR_PAIR(6));
     }
 
-    fn display_case(&self, value: bool) -> &str {
-        match value {
-            false => "insensitive",
-            true => "sensitive",
-        }
+    fn total_pages(&self, commands: &[String]) -> i32 {
+        commands.chunks(LINES() as usize - 3).len() as i32
     }
 
-    fn display_match(&self, value: bool) -> &str {
-        match value {
-            false => "exact",
-            true => "regex",
-        }
-    }
-
-    fn get_substring_indexes<'a>(&self, string: &'a str, substring: &'a str) -> Vec<usize> {
-        let regex = Regex::new(substring);
-        let bla = match regex {
-            Ok(r) => r,
-            Err(_) => {
-                return vec![];
-            }
-        };
-        let indexes = bla.find_iter(string).flat_map(|mat| mat.range()).collect();
-        indexes
-    }
-
-    fn turn_page(&mut self, entries: &[String], direction: i32) {
-        self.page = i32::rem_euclid(self.page - 1 + direction, self.total_pages(entries)) + 1;
-    }
-
-    fn total_pages(&self, entries: &[String]) -> i32 {
-        entries.chunks(LINES() as usize - 3).len() as i32
-    }
-
-    fn get_page(&self, entries: &[String]) -> Vec<String> {
-        match entries
+    fn get_page(&self, commands: &[String]) -> Vec<String> {
+        match commands
             .chunks(LINES() as usize - 3)
             .nth(self.page as usize - 1)
         {
-            Some(val) => val.to_vec(),
+            Some(cmds) => cmds.to_vec(),
             None => Vec::new(),
         }
     }
 
-    fn get_page_size(&self, entries: &[String]) -> i32 {
-        self.get_page(entries).len() as i32
+    fn get_page_size(&self, commands: &[String]) -> i32 {
+        self.get_page(commands).len() as i32
     }
 
-    pub fn prompt_for_deletion(&self, command: &str) {
-        let prompt = format!("Do you want to delete all occurences of {}? y/n", command);
-        mvaddstr(1, 0, &format!("{1:0$}", COLS() as usize, ""));
-        attron(COLOR_PAIR(6));
-        mvaddstr(1, 0, &prompt);
-        attroff(COLOR_PAIR(6));
+    fn get_substring_indexes<'a>(&self, string: &'a str, substring: &'a str) -> Vec<usize> {
+        match Regex::new(substring) {
+            Ok(r) => r.find_iter(string).flat_map(|m| m.range()).collect(),
+            Err(_) => vec![],
+        }
+    }
+
+    fn display_view(&self, value: View) -> String {
+        match value {
+            View::Sorted => String::from("sorted"),
+            View::Favorites => String::from("favorites"),
+            View::All => String::from("all"),
+        }
+    }
+
+    fn display_case(&self, value: bool) -> String {
+        match value {
+            true => String::from("sensitive"),
+            false => String::from("insensitive"),
+        }
+    }
+
+    fn display_regex_mode(&self, value: bool) -> String {
+        match value {
+            true => String::from("on"),
+            false => String::from("off"),
+        }
     }
 }

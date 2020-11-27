@@ -1,168 +1,131 @@
 use crate::sort::sort;
 use crate::util::{read_file, write_file};
+use itertools::Itertools;
+use maplit::hashmap;
 use ncurses::*;
 use regex::{escape, Regex, RegexBuilder};
-use setenv::get_shell;
+use std::collections::HashMap;
 
 const Y: i32 = 121;
 
-#[derive(Clone)]
-pub struct Entries {
-    all: Vec<String>,
-    sorted: Vec<String>,
-    favorites: Vec<String>,
+#[derive(Clone, Copy, Eq, Hash, PartialEq)]
+pub enum View {
+    Sorted = 0,
+    Favorites = 1,
+    All = 2,
 }
 
 pub struct Application {
-    all_entries: Entries,
-    to_restore: Entries,
-    view: u8,
-    regex_match: bool,
-    case_sensitivity: bool,
-    search_string: String,
+    pub to_restore: HashMap<View, Vec<String>>,
+    pub commands: HashMap<View, Vec<String>>,
+    pub view: View,
+    pub regex_mode: bool,
+    pub case_sensitivity: bool,
+    pub search_string: String,
+    pub shell: String,
 }
 
 impl Application {
-    pub fn new(view: u8, regex_match: bool, case_sensitivity: bool, search_string: String) -> Self {
-        let history = read_file(&format!(".{}_history", get_shell().get_name())).unwrap();
-        let all_entries = Entries {
-            all: history.clone(),
-            sorted: sort(history.clone()),
-            favorites: read_file(&format!(".config/hstr-rs/.{}_favorites", get_shell().get_name())).unwrap(),
+    pub fn new(
+        view: View,
+        regex_mode: bool,
+        case_sensitivity: bool,
+        search_string: String,
+        shell: String,
+    ) -> Self {
+        let history = read_file(format!(".{}_history", shell)).unwrap();
+        let commands = hashmap! {
+            View::All => history.clone().into_iter().unique().collect(),
+            View::Sorted => sort(history),
+            View::Favorites => read_file(
+                format!(
+                    ".config/hstr-rs/.{}_favorites",
+                    shell
+                )
+            ).unwrap()
         };
         Self {
-            all_entries: all_entries.clone(),
-            to_restore: all_entries.clone(),
+            to_restore: commands.clone(),
+            commands,
             view,
-            regex_match,
+            regex_mode,
             case_sensitivity,
             search_string,
+            shell,
         }
     }
 
-    pub fn set_all_entries(&mut self, val: Entries) {
-        self.all_entries = val;
+    pub fn restore(&mut self) {
+        self.commands = self.to_restore.clone();
     }
 
-    pub fn to_restore(&self) -> &Entries {
-        &self.to_restore
+    pub fn get_commands(&self) -> &[String] {
+        self.commands.get(&self.view).unwrap()
     }
 
-    pub fn view(&self) -> u8 {
-        self.view
-    }
-
-    pub fn regex_match(&self) -> bool {
-        self.regex_match
-    }
-    pub fn case_sensitivity(&self) -> bool {
-        self.case_sensitivity
-    }
-
-    pub fn search_string_mut(&mut self) -> &mut String {
-        &mut self.search_string
-    }
-
-    pub fn search_string(&self) -> &str {
-        &self.search_string
-    }
-
-    pub fn get_entries_mut(&mut self, view: u8) -> &mut Vec<String> {
-        match view {
-            0 => &mut self.all_entries.sorted,
-            1 => &mut self.all_entries.favorites,
-            2 => &mut self.all_entries.all,
-            _ => &mut self.all_entries.sorted,
-        }
-    }
-
-    pub fn get_entries(&self, view: u8) -> &[String] {
-        match view {
-            0 => &self.all_entries.sorted,
-            1 => &self.all_entries.favorites,
-            2 => &self.all_entries.all,
-            _ => &self.all_entries.sorted,
-        }
-    }
-
-    fn create_search_string_regex(&self) -> Option<Regex> {
-        match self.case_sensitivity {
-            true => match self.regex_match {
-                true => {
-                    let regex = Regex::new(&self.search_string);
-                    match regex {
-                        Ok(r) => Some(r),
-                        Err(_) => None,
-                    }
-                }
-                false => Some(Regex::new(&escape(&self.search_string)).unwrap()),
-            },
-            false => match self.regex_match {
-                true => {
-                    let regex = RegexBuilder::new(&self.search_string)
-                        .case_insensitive(true)
-                        .build();
-                    match regex {
-                        Ok(r) => Some(r),
-                        Err(_) => None,
-                    }
-                }
-                false => {
-                    let regex = RegexBuilder::new(&escape(&self.search_string))
-                        .case_insensitive(true)
-                        .build()
-                        .unwrap();
-                    return Some(regex);
-                }
-            },
-        }
+    fn create_search_regex(&self) -> Option<Regex> {
+        let search_string = if self.regex_mode {
+            self.search_string.clone()
+        } else {
+            escape(&self.search_string)
+        };
+        RegexBuilder::new(&search_string)
+            .case_insensitive(!self.case_sensitivity)
+            .build()
+            .ok()
     }
 
     pub fn search(&mut self) {
-        let search_string_regex = match self.create_search_string_regex() {
+        let search_regex = match self.create_search_regex() {
             Some(r) => r,
             None => {
                 return;
             }
         };
-        self.get_entries_mut(self.view)
-            .retain(|x| search_string_regex.is_match(x));
+        self.commands
+            .get_mut(&self.view)
+            .unwrap()
+            .retain(|x| search_regex.is_match(x));
     }
 
-    pub fn add_to_or_remove_from_favorites(&mut self, command: String) {
-        let favorites = self.get_entries_mut(1);
+    pub fn add_or_rm_fav(&mut self, command: String) -> Result<(), std::io::Error> {
+        let favorites = self.commands.get_mut(&View::Favorites).unwrap();
         if !favorites.contains(&command) {
             favorites.push(command);
         } else {
-            favorites.retain(|x| x != &command);
+            favorites.retain(|x| *x != command);
         }
-        write_file(&format!(".config/hstr-rs/.{}_favorites", get_shell().get_name()), &favorites);
+        write_file(
+            format!(".config/hstr-rs/.{}_favorites", self.shell),
+            favorites,
+        )?;
+        Ok(())
     }
 
-    pub fn delete_from_history(&mut self, command: String) {
-        let answer = getch();
-        match answer {
-            Y => {
-                let all_history = self.get_entries_mut(2);
-                all_history.retain(|x| x != &command);
-                write_file(
-                    &format!(".{}_history", get_shell().get_name()),
-                    &all_history,
-                );
+    pub fn delete_from_history(&mut self, command: String) -> Result<(), std::io::Error> {
+        if getch() == Y {
+            if let Some(cmds) = self.commands.get_mut(&View::All) {
+                cmds.retain(|x| *x != command);
+                write_file(format!(".{}_history", self.shell), cmds)?;
             }
-            _ => {}
         }
+        Ok(())
     }
 
     pub fn toggle_case(&mut self) {
         self.case_sensitivity = !self.case_sensitivity;
     }
 
-    pub fn toggle_match(&mut self) {
-        self.regex_match = !self.regex_match;
+    pub fn toggle_regex_mode(&mut self) {
+        self.regex_mode = !self.regex_mode;
     }
 
     pub fn toggle_view(&mut self) {
-        self.view = (self.view + 1) % 3;
+        self.view = match (self.view as u8 + 1) % 3 {
+            0 => View::Sorted,
+            1 => View::Favorites,
+            2 => View::All,
+            _ => View::Sorted,
+        }
     }
 }

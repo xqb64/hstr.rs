@@ -1,4 +1,4 @@
-use std::cmp::Eq;
+use std::cmp::{Eq, Reverse};
 use std::collections::HashMap;
 use std::hash::Hash;
 
@@ -8,9 +8,9 @@ where
 {
     let freq_map = frequency_map(&entries);
     let pos_map = position_map(&entries);
-    entries.sort_unstable_by(|a, b| pos_map.get(b).unwrap().cmp(pos_map.get(a).unwrap()));
+    entries.sort_by_key(|b| Reverse(pos_map.get(b).unwrap()));
     entries.dedup();
-    entries.sort_by(|a, b| freq_map.get(b).unwrap().cmp(freq_map.get(a).unwrap()));
+    entries.sort_by_key(|b| Reverse(freq_map.get(b).unwrap()));
     entries
 }
 

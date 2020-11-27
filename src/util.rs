@@ -4,23 +4,23 @@ use std::fs::{create_dir_all, write, File};
 use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
 
-pub fn read_file(path: &str) -> Result<Vec<String>, std::io::Error> {
+pub fn read_file(path: String) -> Result<Vec<String>, std::io::Error> {
     let p = dirs::home_dir().unwrap().join(PathBuf::from(path));
     if !Path::new(p.as_path()).exists() {
-        create_dir_all(p.parent().unwrap());
-        File::create(p.as_path());
+        create_dir_all(p.parent().unwrap())?;
+        File::create(p.as_path())?;
         Ok(Vec::new())
     } else {
         let file = File::open(p).unwrap();
         let reader = BufReader::new(file);
-        let contents = reader.lines().collect::<Result<Vec<_>, _>>();
-        contents
+        reader.lines().collect::<Result<Vec<_>, _>>()
     }
 }
 
-pub fn write_file(path: &str, thing: &Vec<String>) {
+pub fn write_file(path: String, thing: &[String]) -> Result<(), std::io::Error> {
     let p = dirs::home_dir().unwrap().join(PathBuf::from(path));
-    write(p, thing.join("\n"));
+    write(p, thing.join("\n"))?;
+    Ok(())
 }
 
 pub fn echo(command: String) {
