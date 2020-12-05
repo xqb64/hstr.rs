@@ -4,6 +4,7 @@ use itertools::Itertools;
 use maplit::hashmap;
 use ncurses::*;
 use regex::{escape, Regex, RegexBuilder};
+use setenv::get_shell;
 use std::collections::HashMap;
 
 const Y: i32 = 121;
@@ -26,21 +27,15 @@ pub struct Application {
 }
 
 impl Application {
-    pub fn new(
-        view: View,
-        regex_mode: bool,
-        case_sensitivity: bool,
-        search_string: String,
-        shell: String,
-    ) -> Self {
+    pub fn new() -> Self {
         Self {
             to_restore: None,
             commands: None,
-            view,
-            regex_mode,
-            case_sensitivity,
-            search_string,
-            shell,
+            view: View::Sorted,
+            regex_mode: false,
+            case_sensitivity: false,
+            search_string: String::new(),
+            shell: String::from(get_shell().get_name()),
         }
     }
 
@@ -151,13 +146,8 @@ mod tests {
     #[test_case(View::Favorites, View::All; "Favorites -> All")]
     #[test_case(View::All, View::Sorted; "All -> Sorted")]
     fn toggle_view(before: View, after: View) {
-        let mut app = Application::new(
-            before,
-            false,
-            false,
-            String::new(),
-            String::from("bash"),
-        );
+        let mut app = Application::new();
+        app.view = before;
         app.toggle_view();
         assert_eq!(app.view, after);
     }
@@ -165,13 +155,8 @@ mod tests {
     #[test_case(true; "true -> false")]
     #[test_case(false; "false -> true")]
     fn toggle_regex_mode(regex_mode: bool) {
-        let mut app = Application::new(
-            View::Sorted,
-            regex_mode,
-            false,
-            String::new(),
-            String::from("bash"),
-        );
+        let mut app = Application::new();
+        app.regex_mode = regex_mode;
         app.toggle_regex_mode();
         assert_eq!(app.regex_mode, !regex_mode);
     }
@@ -179,15 +164,9 @@ mod tests {
     #[test_case(true; "true -> false")]
     #[test_case(false; "false -> true")]
     fn toggle_case(case_sensitivity: bool) {
-        let mut app = Application::new(
-            View::Sorted,
-            false,
-            case_sensitivity,
-            String::new(),
-            String::from("bash"),
-        );
+        let mut app = Application::new();
+        app.case_sensitivity = case_sensitivity;
         app.toggle_case();
         assert_eq!(app.case_sensitivity, !case_sensitivity);
     }
-
 }

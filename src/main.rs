@@ -1,7 +1,6 @@
-use crate::app::{Application, View};
+use crate::app::Application;
 use crate::ui::UserInterface;
 use ncurses::*;
-use setenv::get_shell;
 
 mod app;
 mod sort;
@@ -20,14 +19,7 @@ fn main() -> Result<(), std::io::Error> {
     initscr();
     noecho();
     keypad(stdscr(), true);
-    let shell = get_shell().get_name();
-    let mut app = Application::new(
-        View::Sorted,
-        false,
-        false,
-        String::new(),
-        String::from(shell),
-    );
+    let mut app = Application::new();
     app.load_history();
     let mut user_interface = UserInterface::new();
     user_interface.init_color_pairs();
