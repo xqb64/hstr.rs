@@ -28,6 +28,7 @@ fn main() -> Result<(), std::io::Error> {
         String::new(),
         String::from(shell),
     );
+    app.load_history();
     let mut user_interface = UserInterface::new();
     user_interface.init_color_pairs();
     user_interface.populate_screen(&app);
@@ -106,6 +107,7 @@ fn main() -> Result<(), std::io::Error> {
                         String::from(app.search_string),
                         String::from(app.shell),
                     );
+                    app.load_history();
                     user_interface.populate_screen(&app);
                 }
                 KEY_NPAGE => {

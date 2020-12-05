@@ -1,5 +1,7 @@
 # hstr-rs
 
+![build status](https://github.com/xvm32/hstr-rs/workflows/CI/badge.svg) [![codecov](https://codecov.io/gh/xvm32/hstr-rs/branch/master/graph/badge.svg?token=0BZM100XU5)](https://codecov.io/gh/xvm32/hstr-rs)
+
 **hstr** is shell history suggest box. Like hstr, but with pages.
 
 It was initially made for bash, but it supports zsh and ksh, too. If you want to use it with tcsh, make sure tcsh saves its history to `~/.tcsh_history`.
