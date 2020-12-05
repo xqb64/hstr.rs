@@ -100,13 +100,6 @@ fn main() -> Result<(), std::io::Error> {
                     let command = user_interface.get_selected(&commands);
                     user_interface.prompt_for_deletion(&command);
                     app.delete_from_history(command)?;
-                    app = Application::new(
-                        app.view,
-                        app.regex_mode,
-                        app.case_sensitivity,
-                        String::from(app.search_string),
-                        String::from(app.shell),
-                    );
                     app.load_history();
                     user_interface.populate_screen(&app);
                 }
