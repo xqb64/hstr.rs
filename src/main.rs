@@ -1,6 +1,8 @@
 use crate::app::Application;
 use crate::ui::UserInterface;
+use crate::util::write_file;
 use ncurses::*;
+use setenv::get_shell;
 
 mod app;
 mod sort;
@@ -14,13 +16,15 @@ const ENTER: u32 = 10;
 const CTRL_T: u32 = 20;
 const ESC: u32 = 27;
 const CTRL_SLASH: u32 = 31;
+const Y: i32 = 121;
 
 fn main() -> Result<(), std::io::Error> {
     initscr();
     noecho();
     keypad(stdscr(), true);
-    let mut app = Application::new();
-    app.load_history();
+    let shell = get_shell().get_name();
+    let mut app = Application::new(shell);
+    app.load_commands();
     let mut user_interface = UserInterface::new();
     user_interface.init_color_pairs();
     user_interface.populate_screen(&app);
@@ -36,7 +40,15 @@ fn main() -> Result<(), std::io::Error> {
                 CTRL_F => {
                     let commands = app.get_commands();
                     let command = user_interface.get_selected(&commands);
-                    app.add_or_rm_fav(command)?;
+                    app.add_or_rm_fav(command);
+                    write_file(
+                        format!(".config/hstr-rs/.{}_favorites", shell),
+                        app.commands
+                            .as_ref()
+                            .unwrap()
+                            .get(&app::View::Favorites)
+                            .unwrap(),
+                    )?;
                 }
                 TAB => {
                     let commands = app.get_commands();
@@ -91,8 +103,11 @@ fn main() -> Result<(), std::io::Error> {
                     let commands = app.get_commands();
                     let command = user_interface.get_selected(&commands);
                     user_interface.prompt_for_deletion(&command);
-                    app.delete_from_history(command)?;
-                    app.load_history();
+                    if getch() == Y {
+                        app.delete_from_history(command);
+                        write_file(format!(".{}_history", shell), app.get_commands())?;
+                    }
+                    app.load_commands();
                     user_interface.populate_screen(&app);
                 }
                 KEY_NPAGE => {

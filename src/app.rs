@@ -1,13 +1,9 @@
 use crate::sort::sort;
-use crate::util::{read_file, write_file};
+use crate::util::read_file;
 use itertools::Itertools;
 use maplit::hashmap;
-use ncurses::*;
 use regex::{escape, Regex, RegexBuilder};
-use setenv::get_shell;
 use std::collections::HashMap;
-
-const Y: i32 = 121;
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum View {
@@ -16,6 +12,7 @@ pub enum View {
     All = 2,
 }
 
+#[derive(Clone)]
 pub struct Application {
     pub to_restore: Option<HashMap<View, Vec<String>>>,
     pub commands: Option<HashMap<View, Vec<String>>>,
@@ -27,7 +24,7 @@ pub struct Application {
 }
 
 impl Application {
-    pub fn new() -> Self {
+    pub fn new(shell: &str) -> Self {
         Self {
             to_restore: None,
             commands: None,
@@ -35,11 +32,11 @@ impl Application {
             regex_mode: false,
             case_sensitivity: false,
             search_string: String::new(),
-            shell: String::from(get_shell().get_name()),
+            shell: shell.to_string(),
         }
     }
 
-    pub fn load_history(&mut self) {
+    pub fn load_commands(&mut self) {
         let history = read_file(format!(".{}_history", self.shell)).unwrap();
         let commands = hashmap! {
             View::All => history.clone().into_iter().unique().collect(),
@@ -90,7 +87,7 @@ impl Application {
             .retain(|x| search_regex.is_match(x));
     }
 
-    pub fn add_or_rm_fav(&mut self, command: String) -> Result<(), std::io::Error> {
+    pub fn add_or_rm_fav(&mut self, command: String) {
         let favorites = self
             .commands
             .as_mut()
@@ -102,21 +99,17 @@ impl Application {
         } else {
             favorites.retain(|x| *x != command);
         }
-        write_file(
-            format!(".config/hstr-rs/.{}_favorites", self.shell),
-            favorites,
-        )?;
-        Ok(())
     }
 
-    pub fn delete_from_history(&mut self, command: String) -> Result<(), std::io::Error> {
-        if getch() == Y {
-            if let Some(cmds) = self.commands.as_mut().unwrap().get_mut(&View::All) {
-                cmds.retain(|x| *x != command);
-                write_file(format!(".{}_history", self.shell), cmds)?;
-            }
+    pub fn delete_from_history(&mut self, command: String) {
+        for view in [View::Sorted, View::Favorites, View::All].iter() {
+            self.commands
+                .as_mut()
+                .unwrap()
+                .get_mut(view)
+                .unwrap()
+                .retain(|x| *x != command);
         }
-        Ok(())
     }
 
     pub fn toggle_case(&mut self) {
@@ -140,31 +133,85 @@ impl Application {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use test_case::test_case;
+    use rstest::{fixture, rstest};
 
-    #[test_case(View::Sorted, View::Favorites; "Sorted -> Favorites")]
-    #[test_case(View::Favorites, View::All; "Favorites -> All")]
-    #[test_case(View::All, View::Sorted; "All -> Sorted")]
+    #[fixture]
+    fn app_with_fake_history() -> Application {
+        let mut app = Application::new("bash");
+        let fake_history = vec![
+            "cat spam".to_string(),
+            "grep -r spam .".to_string(),
+            "ping -c 10 www.google.com".to_string(),
+        ];
+        let fake_commands = hashmap! {
+            View::All => fake_history.clone(),
+            View::Favorites => Vec::new(),
+            View::Sorted => fake_history,
+        };
+        app.commands = Some(fake_commands);
+        app
+    }
+
+    #[rstest(
+        command,
+        case(String::from("cat spam")),
+        case(String::from("grep -r spam")),
+        case(String::from("ping -c 10 www.google.com"))
+    )]
+    fn add_or_rm_fav(command: String, mut app_with_fake_history: Application) {
+        app_with_fake_history.add_or_rm_fav(command.clone());
+        assert!(app_with_fake_history
+            .commands
+            .as_ref()
+            .unwrap()
+            .get(&View::Favorites)
+            .unwrap()
+            .contains(&command));
+        app_with_fake_history.add_or_rm_fav(command.clone());
+        assert!(!app_with_fake_history
+            .commands
+            .unwrap()
+            .get(&View::Favorites)
+            .unwrap()
+            .contains(&command));
+    }
+
+    #[rstest(
+        command,
+        case(String::from("cat spam")),
+        case(String::from("grep -r spam")),
+        case(String::from("ping -c 10 www.google.com"))
+    )]
+    fn delete_from_history(command: String, mut app_with_fake_history: Application) {
+        app_with_fake_history.delete_from_history(command.clone());
+        assert!(!app_with_fake_history.get_commands().contains(&command));
+    }
+
+    #[rstest(
+        before,
+        after,
+        case(View::Sorted, View::Favorites),
+        case(View::Favorites, View::All),
+        case(View::All, View::Sorted)
+    )]
     fn toggle_view(before: View, after: View) {
-        let mut app = Application::new();
+        let mut app = Application::new("bash");
         app.view = before;
         app.toggle_view();
         assert_eq!(app.view, after);
     }
 
-    #[test_case(true; "true -> false")]
-    #[test_case(false; "false -> true")]
+    #[rstest(regex_mode, case(true), case(false))]
     fn toggle_regex_mode(regex_mode: bool) {
-        let mut app = Application::new();
+        let mut app = Application::new("bash");
         app.regex_mode = regex_mode;
         app.toggle_regex_mode();
         assert_eq!(app.regex_mode, !regex_mode);
     }
 
-    #[test_case(true; "true -> false")]
-    #[test_case(false; "false -> true")]
+    #[rstest(case_sensitivity, case(true), case(false))]
     fn toggle_case(case_sensitivity: bool) {
-        let mut app = Application::new();
+        let mut app = Application::new("bash");
         app.case_sensitivity = case_sensitivity;
         app.toggle_case();
         assert_eq!(app.case_sensitivity, !case_sensitivity);
