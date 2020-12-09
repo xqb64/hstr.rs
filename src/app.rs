@@ -153,6 +153,24 @@ mod tests {
     }
 
     #[rstest(
+        search_string,
+        regex_mode,
+        case_sensitivity,
+        expected,
+        case(String::from("print("), false, false, "print\\("),
+        case(String::from("print("), true, false, ""),
+        case(String::from("print("), false, true, "print\\("),
+        case(String::from("print("), true, true, ""),
+    )]
+    fn create_search_regex(search_string: String, regex_mode: bool, case_sensitivity: bool, expected: &str, mut app_with_fake_history: Application) {
+        app_with_fake_history.search_string = search_string;
+        app_with_fake_history.regex_mode = regex_mode;
+        app_with_fake_history.case_sensitivity = case_sensitivity;
+        let regex = app_with_fake_history.create_search_regex();
+        assert_eq!(regex.unwrap_or(Regex::new("").unwrap()).as_str(), expected);
+    }
+
+    #[rstest(
         command,
         case(String::from("cat spam")),
         case(String::from("grep -r spam")),
