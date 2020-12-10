@@ -124,6 +124,9 @@ fn main() -> Result<(), std::io::Error> {
             },
         }
     }
+    nc::clear();
+    nc::refresh();
+    nc::doupdate();
     nc::endwin();
     Ok(())
 }
