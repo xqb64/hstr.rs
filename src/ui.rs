@@ -1,6 +1,6 @@
 use crate::app::{Application, View};
 use crate::util::get_shell_prompt;
-use ncurses::*;
+use ncurses as nc;
 use regex::Regex;
 
 const LABEL: &str =
@@ -28,63 +28,63 @@ impl UserInterface {
     }
 
     pub fn init_color_pairs(&self) {
-        start_color();
-        init_pair(1, COLOR_WHITE, COLOR_BLACK); // normal
-        init_pair(2, 15, COLOR_GREEN); // highlighted-green (selected item)
-        init_pair(3, 0, 15); // highlighted-white (status)
-        init_pair(4, 15, 0); // white (favorites)
-        init_pair(5, COLOR_RED, 0); // red (searched items)
-        init_pair(6, 15, COLOR_RED); // higlighted-red
+        nc::start_color();
+        nc::init_pair(1, nc::COLOR_WHITE, nc::COLOR_BLACK); // normal
+        nc::init_pair(2, nc::COLOR_WHITE, nc::COLOR_GREEN); // highlighted-green (selected item)
+        nc::init_pair(3, nc::COLOR_BLACK, nc::COLOR_WHITE); // highlighted-white (status)
+        nc::init_pair(4, nc::COLOR_CYAN, nc::COLOR_BLACK); // white (favorites)
+        nc::init_pair(5, nc::COLOR_RED, nc::COLOR_BLACK); // red (searched items)
+        nc::init_pair(6, nc::COLOR_WHITE, nc::COLOR_RED); // higlighted-red
     }
 
     pub fn populate_screen(&self, app: &Application) {
-        clear();
+        nc::clear();
         let commands = self.get_page(app.get_commands());
         for (index, entry) in commands.iter().enumerate() {
-            mvaddstr(
+            nc::mvaddstr(
                 index as i32 + 3,
                 1,
-                &format!("{1:0$}", COLS() as usize - 1, entry),
+                &format!("{1:0$}", nc::COLS() as usize - 1, entry),
             );
             let substring_indexes = self.get_substring_indexes(&entry, &app.search_string);
             if !substring_indexes.is_empty() {
                 for (idx, letter) in entry.chars().enumerate() {
                     if substring_indexes.contains(&idx) {
-                        attron(COLOR_PAIR(5) | A_BOLD());
-                        mvaddch(index as i32 + 3, idx as i32 + 1, letter as chtype);
-                        attroff(COLOR_PAIR(5) | A_BOLD());
+                        nc::attron(nc::COLOR_PAIR(5) | nc::A_BOLD());
+                        nc::mvaddch(index as i32 + 3, idx as i32 + 1, letter as nc::chtype);
+                        nc::attroff(nc::COLOR_PAIR(5) | nc::A_BOLD());
                     } else {
-                        mvaddch(index as i32 + 3, idx as i32 + 1, letter as chtype);
+                        nc::mvaddch(index as i32 + 3, idx as i32 + 1, letter as nc::chtype);
                     }
                 }
             }
-            if app.get_commands().contains(&entry) {
-                attron(COLOR_PAIR(4));
-                mvaddstr(
+            if app.commands.as_ref().unwrap().get(&View::Favorites).unwrap().contains(&entry) {
+                nc::attron(nc::COLOR_PAIR(4));
+                nc::mvaddstr(
                     index as i32 + 3,
                     1,
-                    &format!("{1:0$}", COLS() as usize - 1, entry),
+                    &format!("{1:0$}", nc::COLS() as usize - 1, entry),
                 );
-                attroff(COLOR_PAIR(4));
+                nc::attroff(nc::COLOR_PAIR(4));
             }
             if index == self.selected as usize {
-                attron(COLOR_PAIR(2));
-                mvaddstr(
+                nc::attron(nc::COLOR_PAIR(2));
+                nc::mvaddstr(
                     index as i32 + 3,
                     1,
-                    &format!("{1:0$}", COLS() as usize - 1, entry),
+                    &format!("{1:0$}", nc::COLS() as usize - 1, entry),
                 );
-                attroff(COLOR_PAIR(2));
+                nc::attroff(nc::COLOR_PAIR(2));
             }
         }
-        mvaddstr(1, 1, LABEL);
-        attron(COLOR_PAIR(3));
-        mvaddstr(
+        nc::mvaddstr(1, 1, LABEL);
+        nc::attron(nc::COLOR_PAIR(3));
+        nc::mvaddstr(
             2,
             1,
             &format!(
                 "{1:0$}",
-                COLS() as usize - 1,
+                nc::COLS() as usize - 1,
                 format!(
                     "- view:{} (C-/) - regex:{} (C-e) - case:{} (C-t) - page {}/{} -",
                     self.display_view(app.view),
@@ -95,8 +95,8 @@ impl UserInterface {
                 )
             ),
         );
-        attroff(COLOR_PAIR(3));
-        mvaddstr(
+        nc::attroff(nc::COLOR_PAIR(3));
+        nc::mvaddstr(
             0,
             1,
             &format!("{} {}", get_shell_prompt(), app.search_string),
@@ -162,23 +162,23 @@ impl UserInterface {
     }
 
     pub fn prompt_for_deletion(&self, command: &str) {
-        mvaddstr(1, 0, &format!("{1:0$}", COLS() as usize, ""));
-        attron(COLOR_PAIR(6));
-        mvaddstr(
+        nc::mvaddstr(1, 0, &format!("{1:0$}", nc::COLS() as usize, ""));
+        nc::attron(nc::COLOR_PAIR(6));
+        nc::mvaddstr(
             1,
             1,
             &format!("Do you want to delete all occurences of {}? y/n", command),
         );
-        attroff(COLOR_PAIR(6));
+        nc::attroff(nc::COLOR_PAIR(6));
     }
 
     fn total_pages(&self, commands: &[String]) -> i32 {
-        commands.chunks(LINES() as usize - 3).len() as i32
+        commands.chunks(nc::LINES() as usize - 3).len() as i32
     }
 
     fn get_page(&self, commands: &[String]) -> Vec<String> {
         match commands
-            .chunks(LINES() as usize - 3)
+            .chunks(nc::LINES() as usize - 3)
             .nth(self.page as usize - 1)
         {
             Some(cmds) => cmds.to_vec(),
