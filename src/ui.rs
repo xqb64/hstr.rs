@@ -38,7 +38,6 @@ impl UserInterface {
     }
 
     pub fn populate_screen(&self, app: &Application) {
-        nc::clear();
         let commands = self.get_page(app.get_commands());
         for (index, entry) in commands.iter().enumerate() {
             nc::mvaddstr(
@@ -131,7 +130,7 @@ impl UserInterface {
         // are no commands in the history, means that we are dividing by 0,
         // which is undefined, and rem() returns None, which means that we are
         // on page 1.
-
+        nc::clear();
         let potential_page = self.page - 1 + direction;
         self.page = match i32::checked_rem_euclid(potential_page, self.total_pages(commands)) {
             Some(x) => x + 1,

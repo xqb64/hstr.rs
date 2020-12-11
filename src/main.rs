@@ -78,6 +78,7 @@ fn main() -> Result<(), std::io::Error> {
                         .push(std::char::from_u32(ch as u32).unwrap());
                     user_interface.set_selected(0);
                     user_interface.set_page(1);
+                    nc::clear();
                     app.search();
                     user_interface.populate_screen(&app);
                 }
@@ -96,6 +97,7 @@ fn main() -> Result<(), std::io::Error> {
                 nc::KEY_BACKSPACE => {
                     app.search_string.pop();
                     app.restore();
+                    nc::clear();
                     app.search();
                     user_interface.populate_screen(&app);
                 }
