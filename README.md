@@ -37,7 +37,7 @@ export PROMPT_COMMAND="history -a; history -n; ${PROMPT_COMMAND}"
 
 ## Usage
 ​
-Making an alias should be the most convenient option:
+Making an alias should be the most convenient option, so you can add this to `~/.bash_aliases`:
 
 ```sh
 alias hh=hstr-rs
