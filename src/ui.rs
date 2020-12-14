@@ -57,7 +57,14 @@ impl UserInterface {
                     }
                 }
             }
-            if app.commands.as_ref().unwrap().get(&View::Favorites).unwrap().contains(&entry) {
+            if app
+                .commands
+                .as_ref()
+                .unwrap()
+                .get(&View::Favorites)
+                .unwrap()
+                .contains(&entry)
+            {
                 nc::attron(nc::COLOR_PAIR(4));
                 nc::mvaddstr(
                     index as i32 + 3,
