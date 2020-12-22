@@ -136,13 +136,17 @@ mod tests {
     use rstest::{fixture, rstest};
 
     #[fixture]
-    fn app_with_fake_history() -> Application {
-        let mut app = Application::new("bash");
-        let fake_history = vec![
+    fn fake_history() -> Vec<String> {
+        vec![
             "cat spam".to_string(),
             "grep -r spam .".to_string(),
             "ping -c 10 www.google.com".to_string(),
-        ];
+        ]
+    }
+
+    #[fixture]
+    fn app_with_fake_history(fake_history: Vec<String>) -> Application {
+        let mut app = Application::new("bash");
         let fake_commands = hashmap! {
             View::All => fake_history.clone(),
             View::Favorites => Vec::new(),
@@ -150,6 +154,19 @@ mod tests {
         };
         app.commands = Some(fake_commands);
         app
+    }
+
+    #[rstest(
+        view,
+        expected,
+        case(View::Sorted, fake_history()),
+        case(View::Favorites, Vec::new()),
+        case(View::All, fake_history())
+    )]
+    fn get_commands(view: View, expected: Vec<String>, mut app_with_fake_history: Application) {
+        app_with_fake_history.view = view;
+        let commands = app_with_fake_history.get_commands();
+        assert_eq!(commands, expected);
     }
 
     #[rstest(
