@@ -157,6 +157,30 @@ mod tests {
     }
 
     #[rstest(
+        search_string,
+        expected,
+        regex_mode,
+        case_sensitivity,
+        case("cat".to_string(), vec!["cat spam".to_string()], false, false),
+        case("spam".to_string(), vec!["cat spam".to_string(), "grep -r spam .".to_string()], false, false),
+        case("[0-9]+".to_string(), vec!["ping -c 10 www.google.com".to_string()], true, false)
+    )]
+    fn search(
+        search_string: String,
+        expected: Vec<String>,
+        regex_mode: bool,
+        case_sensitivity: bool,
+        mut app_with_fake_history: Application,
+    ) {
+        app_with_fake_history.regex_mode = regex_mode;
+        app_with_fake_history.case_sensitivity = case_sensitivity;
+        app_with_fake_history.search_string = search_string;
+        app_with_fake_history.create_search_regex();
+        app_with_fake_history.search();
+        assert_eq!(app_with_fake_history.get_commands(), expected);
+    }
+
+    #[rstest(
         view,
         expected,
         case(View::Sorted, fake_history()),
@@ -196,7 +220,7 @@ mod tests {
     #[rstest(
         command,
         case(String::from("cat spam")),
-        case(String::from("grep -r spam")),
+        case(String::from("grep -r spam .")),
         case(String::from("ping -c 10 www.google.com"))
     )]
     fn add_or_rm_fav(command: String, mut app_with_fake_history: Application) {
@@ -220,7 +244,7 @@ mod tests {
     #[rstest(
         command,
         case(String::from("cat spam")),
-        case(String::from("grep -r spam")),
+        case(String::from("grep -r spam .")),
         case(String::from("ping -c 10 www.google.com"))
     )]
     fn delete_from_history(command: String, mut app_with_fake_history: Application) {
