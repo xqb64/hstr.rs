@@ -136,15 +136,6 @@ mod tests {
     use rstest::{fixture, rstest};
 
     #[fixture]
-    fn fake_history() -> Vec<String> {
-        vec![
-            "cat spam".to_string(),
-            "grep -r spam .".to_string(),
-            "ping -c 10 www.google.com".to_string(),
-        ]
-    }
-
-    #[fixture]
     fn app_with_fake_history(fake_history: Vec<String>) -> Application {
         let mut app = Application::new("bash");
         let fake_commands = hashmap! {
@@ -154,6 +145,15 @@ mod tests {
         };
         app.commands = Some(fake_commands);
         app
+    }
+
+    #[fixture]
+    fn fake_history() -> Vec<String> {
+        vec![
+            "cat spam".to_string(),
+            "grep -r spam .".to_string(),
+            "ping -c 10 www.google.com".to_string(),
+        ]
     }
 
     #[rstest(

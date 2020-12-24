@@ -225,3 +225,43 @@ impl UserInterface {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rstest::rstest;
+
+    #[rstest(
+        value,
+        expected,
+        case(View::Sorted, "sorted"),
+        case(View::Favorites, "favorites"),
+        case(View::All, "all")
+    )]
+    fn display_view(value: View, expected: &str) {
+        let ui = UserInterface::new();
+        assert_eq!(ui.display_view(value), expected.to_string());
+    }
+
+    #[rstest(
+        value,
+        expected,
+        case(true, "sensitive"),
+        case(false, "insensitive")
+    )]
+    fn display_case(value: bool, expected: &str) {
+        let ui = UserInterface::new();
+        assert_eq!(ui.display_case(value), expected.to_string());
+    }
+
+    #[rstest(
+        value,
+        expected,
+        case(true, "on"),
+        case(false, "off")
+    )]
+    fn display_regex_mode(value: bool, expected: &str) {
+        let ui = UserInterface::new();
+        assert_eq!(ui.display_regex_mode(value), expected.to_string());
+    }
+}
