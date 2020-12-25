@@ -125,7 +125,7 @@ impl Application {
             0 => View::Sorted,
             1 => View::Favorites,
             2 => View::All,
-            _ => View::Sorted,
+            _ => unreachable!(),
         }
     }
 }
@@ -138,30 +138,33 @@ pub mod fixtures {
     #[fixture]
     pub fn fake_history() -> Vec<String> {
         vec![
-            "cat spam".to_string(),
-            "cat SPAM".to_string(),
-            "git add .".to_string(),
-            "git add . --dry-run".to_string(),
-            "git push origin master".to_string(),
-            "git rebase -i HEAD~2".to_string(),
-            "git checkout -b tests".to_string(),
-            "grep -r spam .".to_string(),
-            "ping -c 10 www.google.com".to_string(),
-            "ls -la".to_string(),
-            "lsusb".to_string(),
-            "lspci".to_string(),
-            "sudo reboot".to_string(),
-            "source .venv/bin/activate".to_string(),
-            "deactivate".to_string(),
-            "pytest".to_string(),
-            "cargo test".to_string(),
-            "xfce4-panel -r".to_string(),
-            "nano .gitignore".to_string(),
-            "sudo dkms add .".to_string(),
-            "cd ~/Downloads".to_string(),
-            "make -j4".to_string(),
-            "gpg --card-status".to_string(),
+            "cat spam",
+            "cat SPAM",
+            "git add .",
+            "git add . --dry-run",
+            "git push origin master",
+            "git rebase -i HEAD~2",
+            "git checkout -b tests",
+            "grep -r spam .",
+            "ping -c 10 www.google.com",
+            "ls -la",
+            "lsusb",
+            "lspci",
+            "sudo reboot",
+            "source .venv/bin/activate",
+            "deactivate",
+            "pytest",
+            "cargo test",
+            "xfce4-panel -r",
+            "nano .gitignore",
+            "sudo dkms add .",
+            "cd ~/Downloads",
+            "make -j4",
+            "gpg --card-status",
         ]
+        .iter()
+        .map(|&x| x.into())
+        .collect()
     }
 
     #[fixture]
