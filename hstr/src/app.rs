@@ -131,12 +131,21 @@ impl Application {
 }
 
 #[cfg(test)]
-mod tests {
+pub mod fixtures {
     use super::*;
-    use rstest::{fixture, rstest};
+    use rstest::fixture;
 
     #[fixture]
-    fn app_with_fake_history(fake_history: Vec<String>) -> Application {
+    pub fn fake_history() -> Vec<String> {
+        vec![
+            "cat spam".to_string(),
+            "grep -r spam .".to_string(),
+            "ping -c 10 www.google.com".to_string(),
+        ]
+    }
+
+    #[fixture]
+    pub fn app_with_fake_history(fake_history: Vec<String>) -> Application {
         let mut app = Application::new("bash");
         let fake_commands = hashmap! {
             View::All => fake_history.clone(),
@@ -146,15 +155,12 @@ mod tests {
         app.commands = Some(fake_commands);
         app
     }
+}
 
-    #[fixture]
-    fn fake_history() -> Vec<String> {
-        vec![
-            "cat spam".to_string(),
-            "grep -r spam .".to_string(),
-            "ping -c 10 www.google.com".to_string(),
-        ]
-    }
+#[cfg(test)]
+mod tests {
+    use super::{fixtures::*, *};
+    use rstest::rstest;
 
     #[rstest(
         search_string,

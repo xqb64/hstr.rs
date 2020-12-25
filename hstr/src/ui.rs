@@ -1,6 +1,11 @@
 use crate::app::{Application, View};
 use crate::util::get_shell_prompt;
+
+#[cfg(test)]
+use fake_ncurses as nc;
+#[cfg(not(test))]
 use ncurses as nc;
+
 use regex::Regex;
 
 const LABEL: &str =
@@ -229,7 +234,15 @@ impl UserInterface {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::app::fixtures::*;
     use rstest::rstest;
+
+    #[rstest()]
+    fn get_page_size(app_with_fake_history: Application) {
+        let user_interface = UserInterface::new();
+        let commands = app_with_fake_history.get_commands();
+        assert_eq!(user_interface.get_page_size(commands), 3);
+    }
 
     #[rstest(
         value,
@@ -239,29 +252,22 @@ mod tests {
         case(View::All, "all")
     )]
     fn display_view(value: View, expected: &str) {
-        let ui = UserInterface::new();
-        assert_eq!(ui.display_view(value), expected.to_string());
+        let user_interface = UserInterface::new();
+        assert_eq!(user_interface.display_view(value), expected.to_string());
     }
 
-    #[rstest(
-        value,
-        expected,
-        case(true, "sensitive"),
-        case(false, "insensitive")
-    )]
+    #[rstest(value, expected, case(true, "sensitive"), case(false, "insensitive"))]
     fn display_case(value: bool, expected: &str) {
-        let ui = UserInterface::new();
-        assert_eq!(ui.display_case(value), expected.to_string());
+        let user_interface = UserInterface::new();
+        assert_eq!(user_interface.display_case(value), expected.to_string());
     }
 
-    #[rstest(
-        value,
-        expected,
-        case(true, "on"),
-        case(false, "off")
-    )]
+    #[rstest(value, expected, case(true, "on"), case(false, "off"))]
     fn display_regex_mode(value: bool, expected: &str) {
-        let ui = UserInterface::new();
-        assert_eq!(ui.display_regex_mode(value), expected.to_string());
+        let user_interface = UserInterface::new();
+        assert_eq!(
+            user_interface.display_regex_mode(value),
+            expected.to_string()
+        );
     }
 }
