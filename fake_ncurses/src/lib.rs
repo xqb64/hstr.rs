@@ -7,7 +7,7 @@ pub const fn A_BOLD() -> attr_t {
 
 #[allow(non_snake_case)]
 pub fn LINES() -> i32 {
-    24
+    10
 }
 
 #[allow(non_snake_case)]

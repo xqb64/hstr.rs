@@ -139,8 +139,28 @@ pub mod fixtures {
     pub fn fake_history() -> Vec<String> {
         vec![
             "cat spam".to_string(),
+            "cat SPAM".to_string(),
+            "git add .".to_string(),
+            "git add . --dry-run".to_string(),
+            "git push origin master".to_string(),
+            "git rebase -i HEAD~2".to_string(),
+            "git checkout -b tests".to_string(),
             "grep -r spam .".to_string(),
             "ping -c 10 www.google.com".to_string(),
+            "ls -la".to_string(),
+            "lsusb".to_string(),
+            "lspci".to_string(),
+            "sudo reboot".to_string(),
+            "source .venv/bin/activate".to_string(),
+            "deactivate".to_string(),
+            "pytest".to_string(),
+            "cargo test".to_string(),
+            "xfce4-panel -r".to_string(),
+            "nano .gitignore".to_string(),
+            "sudo dkms add .".to_string(),
+            "cd ~/Downloads".to_string(),
+            "make -j4".to_string(),
+            "gpg --card-status".to_string(),
         ]
     }
 
@@ -167,20 +187,21 @@ mod tests {
         expected,
         regex_mode,
         case_sensitivity,
-        case("cat".to_string(), vec!["cat spam".to_string()], false, false),
-        case("spam".to_string(), vec!["cat spam".to_string(), "grep -r spam .".to_string()], false, false),
-        case("[0-9]+".to_string(), vec!["ping -c 10 www.google.com".to_string()], true, false)
+        case("cat", vec!["cat spam", "cat SPAM"], false, false),
+        case("spam", vec!["cat spam", "cat SPAM", "grep -r spam ."], false, false),
+        case("SPAM", vec!["cat SPAM"], false, true),
+        case("[0-9]+", vec!["git rebase -i HEAD~2", "ping -c 10 www.google.com", "xfce4-panel -r", "make -j4"], true, false)
     )]
     fn search(
-        search_string: String,
-        expected: Vec<String>,
+        search_string: &str,
+        expected: Vec<&str>,
         regex_mode: bool,
         case_sensitivity: bool,
         mut app_with_fake_history: Application,
     ) {
         app_with_fake_history.regex_mode = regex_mode;
         app_with_fake_history.case_sensitivity = case_sensitivity;
-        app_with_fake_history.search_string = search_string;
+        app_with_fake_history.search_string = String::from(search_string);
         app_with_fake_history.create_search_regex();
         app_with_fake_history.search();
         assert_eq!(app_with_fake_history.get_commands(), expected);

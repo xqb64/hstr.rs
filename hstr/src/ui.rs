@@ -237,11 +237,31 @@ mod tests {
     use crate::app::fixtures::*;
     use rstest::rstest;
 
+    #[rstest(
+        string,
+        substring,
+        expected,
+        case("cat spam", "cat", vec![0, 1, 2]),
+        case("make -j4", "[0-9]+", vec![7]),
+        case("ping -c 10 www.google.com", "[0-9]+", vec![8, 9])
+    )]
+    fn get_substring_indexes(string: &str, substring: &str, expected: Vec<usize>) {
+        let user_interface = UserInterface::new();
+        assert_eq!(user_interface.get_substring_indexes(string, substring), expected);
+    }
+
     #[rstest()]
     fn get_page_size(app_with_fake_history: Application) {
         let user_interface = UserInterface::new();
         let commands = app_with_fake_history.get_commands();
-        assert_eq!(user_interface.get_page_size(commands), 3);
+        assert_eq!(user_interface.get_page_size(commands), 7);
+    }
+
+    #[rstest()]
+    fn total_pages(app_with_fake_history: Application) {
+        let user_interface = UserInterface::new();
+        let commands = app_with_fake_history.get_commands();
+        assert_eq!(user_interface.total_pages(commands), 4);
     }
 
     #[rstest(
