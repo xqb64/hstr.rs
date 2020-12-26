@@ -239,6 +239,64 @@ mod tests {
     use rstest::rstest;
 
     #[rstest(
+        value,
+        case(1),
+        case(2),
+        case(3),
+        case(4),
+    )]
+    fn set_page(value: i32) {
+        let mut user_interface = UserInterface::new();
+        user_interface.set_page(value);
+        assert_eq!(user_interface.page, value);
+    }
+
+    #[rstest(
+        value,
+        case(1),
+        case(3),
+        case(5),
+        case(7),
+    )]
+    fn set_selected(value: i32) {
+        let mut user_interface = UserInterface::new();
+        user_interface.set_selected(value);
+        assert_eq!(user_interface.selected, value);
+    }
+
+    #[rstest(page, case(1), case(2), case(3), case(4))]
+    fn get_page(page: i32, app_with_fake_history: Application) {
+        let mut user_interface = UserInterface::new();
+        let commands = app_with_fake_history.get_commands();
+        user_interface.set_page(page);
+        assert_eq!(
+            user_interface.get_page(commands),
+            fake_history().chunks(7).nth(page as usize - 1).unwrap()
+        );
+    }
+
+    #[rstest(
+        current,
+        expected,
+        direction,
+        case(1, 2, 1),
+        case(2, 3, 1),
+        case(3, 4, 1),
+        case(4, 1, 1),
+        case(4, 3, -1),
+        case(3, 2, -1),
+        case(2, 1, -1),
+        case(1, 4, -1),
+    )]
+    fn turn_page(current: i32, expected: i32, direction: i32, app_with_fake_history: Application) {
+        let mut user_interface = UserInterface::new();
+        let commands = app_with_fake_history.get_commands();
+        user_interface.set_page(current);
+        user_interface.turn_page(commands, direction);
+        assert_eq!(user_interface.page, expected)
+    }
+
+    #[rstest(
         string,
         substring,
         expected,
