@@ -12,8 +12,8 @@ const LABEL: &str =
     "Type to filter, UP/DOWN move, RET/TAB select, DEL remove, ESC quit, C-f add/rm fav";
 
 pub struct UserInterface {
-    page: i32,
-    selected: i32,
+    pub page: i32,
+    pub selected: i32,
 }
 
 impl UserInterface {
@@ -22,14 +22,6 @@ impl UserInterface {
             page: 1,
             selected: 0,
         }
-    }
-
-    pub fn set_page(&mut self, v: i32) {
-        self.page = v;
-    }
-
-    pub fn set_selected(&mut self, v: i32) {
-        self.selected = v;
     }
 
     pub fn init_color_pairs(&self) {
@@ -239,39 +231,48 @@ mod tests {
     use rstest::rstest;
 
     #[rstest(
-        value,
-        case(1),
-        case(2),
-        case(3),
-        case(4),
+        page,
+        expected,
+        case(1, vec![
+            "cat spam",
+            "cat SPAM",
+            "git add .",
+            "git add . --dry-run",
+            "git push origin master",
+            "git rebase -i HEAD~2",
+            "git checkout -b tests",
+        ]),
+        case(2, vec![
+            "grep -r spam .",
+            "ping -c 10 www.google.com",
+            "ls -la",
+            "lsusb",
+            "lspci",
+            "sudo reboot",
+            "source .venv/bin/activate",
+        ]),
+        case(3, vec![
+            "deactivate",
+            "pytest",
+            "cargo test",
+            "xfce4-panel -r",
+            "nano .gitignore",
+            "sudo dkms add .",
+            "cd ~/Downloads",
+        ]),
+        case(4, vec![
+            "make -j4",
+            "gpg --card-status",
+        ]),
+        case(5, vec![])
     )]
-    fn set_page(value: i32) {
-        let mut user_interface = UserInterface::new();
-        user_interface.set_page(value);
-        assert_eq!(user_interface.page, value);
-    }
-
-    #[rstest(
-        value,
-        case(1),
-        case(3),
-        case(5),
-        case(7),
-    )]
-    fn set_selected(value: i32) {
-        let mut user_interface = UserInterface::new();
-        user_interface.set_selected(value);
-        assert_eq!(user_interface.selected, value);
-    }
-
-    #[rstest(page, case(1), case(2), case(3), case(4))]
-    fn get_page(page: i32, app_with_fake_history: Application) {
+    fn get_page(page: i32, expected: Vec<&str>, app_with_fake_history: Application) {
         let mut user_interface = UserInterface::new();
         let commands = app_with_fake_history.get_commands();
-        user_interface.set_page(page);
+        user_interface.page = page;
         assert_eq!(
             user_interface.get_page(commands),
-            fake_history().chunks(7).nth(page as usize - 1).unwrap()
+            expected
         );
     }
 
@@ -291,7 +292,7 @@ mod tests {
     fn turn_page(current: i32, expected: i32, direction: i32, app_with_fake_history: Application) {
         let mut user_interface = UserInterface::new();
         let commands = app_with_fake_history.get_commands();
-        user_interface.set_page(current);
+        user_interface.page = current;
         user_interface.turn_page(commands, direction);
         assert_eq!(user_interface.page, expected)
     }

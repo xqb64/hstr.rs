@@ -34,7 +34,7 @@ fn main() -> Result<(), std::io::Error> {
             nc::WchResult::Char(ch) => match ch {
                 CTRL_E => {
                     app.toggle_regex_mode();
-                    user_interface.set_selected(0);
+                    user_interface.selected = 0;
                     user_interface.populate_screen(&app);
                 }
                 CTRL_F => {
@@ -70,14 +70,14 @@ fn main() -> Result<(), std::io::Error> {
                 ESC => break,
                 CTRL_SLASH => {
                     app.toggle_view();
-                    user_interface.set_selected(0);
+                    user_interface.selected = 0;
                     user_interface.populate_screen(&app);
                 }
                 _ => {
                     app.search_string
                         .push(std::char::from_u32(ch as u32).unwrap());
-                    user_interface.set_selected(0);
-                    user_interface.set_page(1);
+                    user_interface.selected = 0;
+                    user_interface.page = 1;
                     nc::clear();
                     app.search();
                     user_interface.populate_screen(&app);
