@@ -1,6 +1,6 @@
 [package]
 name = "hstr-rs"
-version = "0.5.0"
+version = "0.5.1"
 authors = ["xvm32 <xvm32@users.noreply.github.com>"]
 edition = "2018"
 
