@@ -1,6 +1,6 @@
 # hstr-rs
 
-![build status](https://github.com/xvm32/hstr-rs/workflows/CI/badge.svg) [![codecov](https://codecov.io/gh/xvm32/hstr-rs/branch/master/graph/badge.svg?token=0BZM100XU5)](https://codecov.io/gh/xvm32/hstr-rs)
+![build status](https://github.com/xvm32/hstr-rs/workflows/CI/badge.svg)
 
 ![screenshot](screencast.gif)
 
