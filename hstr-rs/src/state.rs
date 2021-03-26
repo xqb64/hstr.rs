@@ -1,3 +1,5 @@
+use std::collections::VecDeque;
+
 use crate::{hstr, io, sort};
 use fuzzy_matcher::skim::SkimMatcherV2;
 use fuzzy_matcher::FuzzyMatcher;
@@ -16,6 +18,8 @@ pub struct State {
     pub raw_history: Vec<String>,
     pub commands: Commands,
     pub to_restore: Commands,
+    pub cursor: usize,
+    pub query_stack: VecDeque<char>,
 }
 
 impl State {
@@ -35,6 +39,8 @@ impl State {
             raw_history,
             commands: commands.clone(),
             to_restore: commands,
+            cursor: 0,
+            query_stack: VecDeque::new(),
         }
     }
 
