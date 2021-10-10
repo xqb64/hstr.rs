@@ -9,4 +9,6 @@ HISTSIZE=${HISTFILESIZE}
 # sync entries in memory with .bash_history, and vice-versa
 export PROMPT_COMMAND="history -a; history -n; ${PROMPT_COMMAND}"
 # bind hstr-rs to CTRL + H
-if [[ $- =~ .*i.* ]]; then bind '"\C-h": "\C-ahstr-rs -- \C-j"'; fi
+if [[ $- =~ .*i.* ]]; then
+    bind '"\C-h": "\C-ahstr-rs -- \"\C-e\"\C-j"'
+fi
