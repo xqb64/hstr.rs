@@ -1,6 +1,6 @@
 # hstr-rs
 
-![build status](https://github.com/xvm32/hstr-rs/workflows/CI/badge.svg)
+![build status](https://github.com/xqb64/hstr-rs/workflows/CI/badge.svg)
 
 ![screenshot](screencast.gif)
 
@@ -21,7 +21,7 @@ sudo apt install libncurses5 libncurses5-dev libncursesw5 libncursesw5-dev
 Then run:
 ​
 ```
-cargo install --git https://github.com/xvm32/hstr-rs.git
+cargo install --git https://github.com/xqb64/hstr-rs.git
 ```
 ​
 If on bash, run:
@@ -51,4 +51,4 @@ Then invoke the program with `hh`.
 
 ## Licensing
 
-Licensed under the [MIT License](https://opensource.org/licenses/MIT). For details, see [LICENSE](https://github.com/xvm32/hstr-rs/blob/master/LICENSE).
+Licensed under the [MIT License](https://opensource.org/licenses/MIT). For details, see [LICENSE](https://github.com/xqb64/hstr-rs/blob/master/LICENSE).

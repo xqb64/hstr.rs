@@ -1,7 +1,7 @@
 [package]
 name = "hstr-rs"
 version = "0.12.1"
-authors = ["xvm32 <xvm32@users.noreply.github.com>"]
+authors = ["xqb64 <x@nuked.one>"]
 edition = "2018"
 description = "History suggest box for bash and zsh"
 license = "MIT"
