@@ -107,8 +107,9 @@ fn main() -> Result<(), std::io::Error> {
                     user_interface.populate_screen(&state);
                 }
                 nc::KEY_BACKSPACE => {
-                    state.query.remove_char(&user_interface);
-                    state.history = state.to_restore.clone();
+                    if !state.query.text.is_empty() {
+                        state.query.remove_char(&user_interface);
+                    }
                     nc::clear();
                     state.search();
                     user_interface.populate_screen(&state);
