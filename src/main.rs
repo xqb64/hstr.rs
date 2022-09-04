@@ -82,7 +82,6 @@ fn main() -> Result<(), std::io::Error> {
                 _ => {
                     let ch = std::char::from_u32(ch).unwrap();
                     state.query.insert_char(&user_interface, ch);
-                    state.history = state.to_restore.clone();
                     user_interface.page.selected = 0;
                     user_interface.page.value = 1;
                     nc::clear();

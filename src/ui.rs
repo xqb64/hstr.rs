@@ -104,7 +104,7 @@ impl Page {
 
     fn contents(&self, state: &State) -> Vec<String> {
         match state
-            .history
+            .search_results
             .chunks(nc::LINES() as usize - 3)
             .nth(self.value as usize - 1)
         {

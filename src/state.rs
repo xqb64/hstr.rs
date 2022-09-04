@@ -11,7 +11,7 @@ pub struct State {
     pub shell: Shell,
     pub query: Query,
     pub history: History,
-    pub to_restore: History,
+    pub search_results: History,
 }
 
 impl State {
@@ -30,8 +30,8 @@ impl State {
             search_mode: SearchMode::Exact,
             shell: Shell::from_str(shell).unwrap(),
             query: Query::new(query),
-            history: history.clone(),
-            to_restore: history,
+            search_results: history.clone(),
+            history,
         }
     }
 
@@ -44,7 +44,8 @@ impl State {
                         return;
                     }
                 };
-                self.history.retain(|cmd| search_regex.is_match(cmd));
+                self.search_results = self.history.clone();
+                self.search_results.retain(|cmd| search_regex.is_match(cmd));
             }
             SearchMode::Fuzzy => {
                 let query = self.query.text.clone();
@@ -54,7 +55,8 @@ impl State {
                         .retain(|cmd| matcher.fuzzy_match(cmd, &query).is_some());
                 } else {
                     let matcher = SkimMatcherV2::default();
-                    self.history
+                    self.search_results = self.history.clone();
+                    self.search_results
                         .retain(|cmd| matcher.fuzzy_match(cmd, &query).is_some());
                 }
             }
