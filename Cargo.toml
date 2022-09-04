@@ -1,6 +1,6 @@
 [package]
 name = "hstr-rs"
-version = "0.12.1"
+version = "0.13.0"
 authors = ["xqb64 <x@nuked.one>"]
 edition = "2018"
 description = "History suggest box for bash and zsh"

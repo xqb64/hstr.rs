@@ -10,6 +10,13 @@ There is an ongoing effort to support other shells too. Contributors are very we
 ​
 ## Installation
 ​
+### Docker
+
+```
+docker pull xqb64/hstr-rs:0.13.0
+docker run -it -e USER="$USER" -e HOME="$HOME" -v /home:/home xqb64/hstr-rs:0.13.0
+```
+
 Make sure you have ncurses packages installed.
 
 If on Ubuntu:
