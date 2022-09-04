@@ -194,6 +194,6 @@ mod tests {
         fake_state.case_sensitivity = case_sensitivity;
         fake_state.query = Query::new(query);
         fake_state.search();
-        assert_eq!(fake_state.history, expected);
+        assert_eq!(fake_state.search_results, expected);
     }
 }
