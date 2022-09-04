@@ -116,7 +116,7 @@ impl Query {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum SearchMode {
     Exact = 0,
     Regex = 1,

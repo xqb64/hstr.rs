@@ -309,7 +309,7 @@ mod pp {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum Direction {
     Forward = 1,
     Backward = -1,
