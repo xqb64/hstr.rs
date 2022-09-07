@@ -10,16 +10,7 @@ There is an ongoing effort to support other shells too. Contributors are very we
 ​
 ## Installation
 ​
-You can use **hstr-rs** via Docker. Pull the image and use the command specified below.
-
-### Docker
-
-```
-docker pull xqb64/hstr-rs:0.13.0
-docker run -it -e USER="$USER" -e HOME="$HOME" -v /home:/home xqb64/hstr-rs:0.13.0
-```
-
-If you would like to directly install **hstr-rs** on your machine, make sure you have a Rust compiler and ncurses packages.
+Make sure you have a Rust compiler and ncurses packages.
 
 If on Ubuntu, run:
 ​
