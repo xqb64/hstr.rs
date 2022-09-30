@@ -30,14 +30,14 @@ If on bash, run:
 hstr-rs --show-config bash >> ~/.bashrc
 ```
 
-...or manually add [these lines](hstr-rs/src/config/bash) to your `.bashrc`.
+...or manually add [these lines](src/config/bash) to your `.bashrc`.
 
 For zsh, run:
 
 ```
 hstr-rs --show-config zsh >> ~/.zshrc
 ```
-...or manually add [these lines](hstr-rs/src/config/zsh) to your `.zshrc`.
+...or manually add [these lines](src/config/zsh) to your `.zshrc`.
 
 ## Usage
 ​
