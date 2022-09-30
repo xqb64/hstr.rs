@@ -99,11 +99,13 @@ impl Query {
     }
 
     pub fn insert_char(&mut self, user_interface: &UserInterface, ch: char) {
+        /* Inserts a character at the cursor position. */
         let position = self.byte_position(user_interface.cursor.position);
         self.text.insert(position, ch);
     }
 
     pub fn remove_char(&mut self, user_interface: &UserInterface) {
+        /* If there is a character before the cursor, remove it. */
         if let Some(char_at) = user_interface.cursor.position.checked_sub(1) {
             let position = self.byte_position(char_at);
             self.text.remove(position);
@@ -111,6 +113,7 @@ impl Query {
     }
 
     fn byte_position(&self, index: usize) -> usize {
+        /* Calculates the byte position of a character at a given index. */
         self.text.chars().take(index).map(|ch| ch.len_utf8()).sum()
     }
 }

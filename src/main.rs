@@ -25,6 +25,7 @@ fn main() {
 }
 
 fn run(args: Opt) -> anyhow::Result<()> {
+    /* If the --show-config option was passed, print config and exit. */
     if let Some(config_option) = args.show_config {
         let shell = Shell::from_str(&config_option)?;
         io::print_config(shell);
@@ -37,6 +38,8 @@ fn run(args: Opt) -> anyhow::Result<()> {
 
     ui::curses::init();
 
+    /* If a search query was passed when hstr was started, search
+     * and move the cursor to the end of the query. */
     if !query.is_empty() {
         state.search();
 
