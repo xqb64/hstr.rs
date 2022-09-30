@@ -17,6 +17,7 @@ structopt = "0.3.21"
 setenv = "0.1.2"
 fuzzy-matcher = "0.3.7"
 unicode-width = "0.1.8"
+anyhow = "1.0.65"
 
 [dev-dependencies]
 rstest = "0.6.4"

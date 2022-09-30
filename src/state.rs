@@ -15,24 +15,21 @@ pub struct State {
 }
 
 impl State {
-    pub fn new(query: &str) -> Self {
-        let shell = setenv::get_shell().get_name();
-        let history = match Shell::from_str(shell) {
-            Some(sh) => match sh {
-                Shell::Bash => hstr::get_bash_history(),
-                Shell::Zsh => hstr::get_zsh_history(),
-            },
-            None => panic!("{} is not supported yet.", shell),
+    pub fn new(query: &str) -> anyhow::Result<Self> {
+        let shell = Shell::from_str(setenv::get_shell().get_name())?;
+        let history = match shell {
+            Shell::Bash => hstr::get_bash_history(),
+            Shell::Zsh => hstr::get_zsh_history(),
         };
 
-        Self {
+        Ok(Self {
             case_sensitivity: false,
             search_mode: SearchMode::Exact,
-            shell: Shell::from_str(shell).unwrap(),
             query: Query::new(query),
             search_results: history.clone(),
             history,
-        }
+            shell,
+        })
     }
 
     pub fn search(&mut self) {
@@ -107,8 +104,10 @@ impl Query {
     }
 
     pub fn remove_char(&mut self, user_interface: &UserInterface) {
-        let position = self.bytelength(user_interface.cursor.position - 1);
-        self.text.remove(position);
+        if let Some(char_at) = user_interface.cursor.position.checked_sub(1) {
+            let position = self.bytelength(char_at);
+            self.text.remove(position);
+        }
     }
 
     fn bytelength(&self, index: usize) -> usize {
@@ -166,7 +165,7 @@ mod tests {
 
     #[fixture]
     pub fn fake_state(fake_history: History) -> State {
-        let mut state = State::new("");
+        let mut state = State::new("").unwrap();
         state.history = fake_history;
         state
     }
@@ -177,6 +176,7 @@ mod tests {
         search_mode,
         case_sensitivity,
         case("cat", vec!["cat spam", "cat SPAM"], SearchMode::Exact, false),
+        case("pam", vec!["cat spam", "grep -r spam ."], SearchMode::Exact, true),
         case("spam", vec!["cat spam", "cat SPAM", "grep -r spam ."], SearchMode::Exact, false),
         case("SPAM", vec!["cat SPAM"], SearchMode::Exact, true),
         case("[0-9]+", vec!["git rebase -i HEAD~2", "ping -c 10 www.google.com", "xfce4-panel -r", "make -j4"], SearchMode::Regex, false),

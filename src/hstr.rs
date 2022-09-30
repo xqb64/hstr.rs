@@ -1,5 +1,6 @@
 use crate::io;
 use crate::sort;
+use anyhow::anyhow;
 
 pub type History = Vec<String>;
 
@@ -35,11 +36,11 @@ pub enum Shell {
 }
 
 impl Shell {
-    pub fn from_str(string: &str) -> Option<Self> {
+    pub fn from_str(string: &str) -> anyhow::Result<Self> {
         match string {
-            "bash" => Some(Shell::Bash),
-            "zsh" => Some(Shell::Zsh),
-            _ => None,
+            "bash" => Ok(Shell::Bash),
+            "zsh" => Ok(Shell::Zsh),
+            _ => Err(anyhow!("Not implemented for {}", string)),
         }
     }
 }

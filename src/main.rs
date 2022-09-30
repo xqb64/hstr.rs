@@ -15,27 +15,24 @@ const ENTER: u32 = 10;
 const CTRL_T: u32 = 20;
 const ESC: u32 = 27;
 
-#[derive(Debug, StructOpt)]
-struct Opt {
-    query: Option<String>,
-    #[structopt(name = "show-config", long)]
-    show_config: Option<String>,
+fn main() {
+    let args = Opt::from_args();
+    let result = run(args);
+
+    if let Err(e) = result {
+        eprintln!("hstr-rs error: {:?}", e);
+    }
 }
 
-fn main() -> Result<(), std::io::Error> {
-    let opt = Opt::from_args();
-
-    if let Some(input) = opt.show_config {
-        if let Some(shell) = Shell::from_str(&input) {
-            io::print_config(shell);
-        } else {
-            eprintln!("{} is not supported.", input);
-        }
+fn run(args: Opt) -> anyhow::Result<()> {
+    if let Some(config_option) = args.show_config {
+        let shell = Shell::from_str(&config_option)?;
+        io::print_config(shell);
         return Ok(());
     }
 
-    let query = opt.query.unwrap_or_default();
-    let mut state = state::State::new(&query);
+    let query = args.query.unwrap_or_default();
+    let mut state = state::State::new(&query)?;
     let mut user_interface = ui::UserInterface::new();
 
     ui::curses::init();
@@ -134,4 +131,11 @@ fn main() -> Result<(), std::io::Error> {
     ui::curses::teardown();
 
     Ok(())
+}
+
+#[derive(Debug, StructOpt)]
+struct Opt {
+    query: Option<String>,
+    #[structopt(name = "show-config", long)]
+    show_config: Option<String>,
 }

@@ -156,7 +156,7 @@ impl Page {
     }
 
     pub fn total_pages(&self, state: &State) -> i32 {
-        state.history.chunks(nc::LINES() as usize - 3).len() as i32
+        state.search_results.chunks(nc::LINES() as usize - 3).len() as i32
     }
 
     pub fn move_selected(&mut self, state: &State, direction: Direction) {
