@@ -99,18 +99,18 @@ impl Query {
     }
 
     pub fn insert_char(&mut self, user_interface: &UserInterface, ch: char) {
-        let position = self.bytelength(user_interface.cursor.position);
+        let position = self.byte_position(user_interface.cursor.position);
         self.text.insert(position, ch);
     }
 
     pub fn remove_char(&mut self, user_interface: &UserInterface) {
         if let Some(char_at) = user_interface.cursor.position.checked_sub(1) {
-            let position = self.bytelength(char_at);
+            let position = self.byte_position(char_at);
             self.text.remove(position);
         }
     }
 
-    fn bytelength(&self, index: usize) -> usize {
+    fn byte_position(&self, index: usize) -> usize {
         self.text.chars().take(index).map(|ch| ch.len_utf8()).sum()
     }
 }
