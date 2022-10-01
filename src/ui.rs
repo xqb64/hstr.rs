@@ -89,17 +89,17 @@ impl UserInterface {
 }
 
 pub struct Page {
-    value: i32,
-    selected: i32,
+    value: usize,
+    selected: usize,
 }
 
 impl Page {
-    pub fn new(value: i32) -> Self {
+    pub fn new(value: usize) -> Self {
         Self { value, selected: 0 }
     }
 
-    fn size(&self, state: &State) -> i32 {
-        self.contents(state).len() as i32
+    fn size(&self, state: &State) -> usize {
+        self.contents(state).len()
     }
 
     fn contents(&self, state: &State) -> Vec<String> {
@@ -117,11 +117,11 @@ impl Page {
         self.contents(state).get(self.selected as usize).cloned()
     }
 
-    pub fn set_selected(&mut self, index: i32) {
+    pub fn set_selected(&mut self, index: usize) {
         self.selected = index;
     }
 
-    pub fn set_page(&mut self, page: i32) {
+    pub fn set_page(&mut self, page: usize) {
         self.value = page;
     }
 
@@ -131,7 +131,7 @@ impl Page {
          * We are getting the potential page by subtracting 1
          * from the page number, because pages are 1-based, and
          * we need them to be 0-based for the calculation to work.
-         * Then we stately the direction which is always +1 or -1.
+         * Then we add the direction which is always +1 or -1.
          *
          * We then use the remainder part of Euclidean division of
          * potential page over total number of pages, in order to
@@ -150,27 +150,41 @@ impl Page {
          * we get to the 4th page.
          *
          * The total number of pages being 0, which is the case when there
-         * are no history in the history, means that we are dividing by 0,
+         * are no entries in the history, means that we are dividing by 0,
          * which is undefined, and rem() returns None, which means that we are
          * on page 1.
          */
         nc::clear();
-        let next_page = self.value - 1 + direction as i32;
-        let pages = self.total_pages(state);
-        self.value = match next_page.checked_rem_euclid(pages) {
-            Some(x) => x + 1,
+        let potential_page = (self.value - 1) as isize + (direction as isize);
+        self.value = match potential_page.checked_rem_euclid(self.total_pages(state) as isize) {
+            Some(x) => (x + 1) as usize,
             None => 1,
         }
     }
 
-    pub fn total_pages(&self, state: &State) -> i32 {
-        state.search_results.chunks(nc::LINES() as usize - 3).len() as i32
+    pub fn total_pages(&self, state: &State) -> usize {
+        state.search_results.chunks(nc::LINES() as usize - 3).len()
     }
 
     pub fn move_selected(&mut self, state: &State, direction: Direction) {
-        self.selected += direction as i32;
-        if let Some(wraparound) = self.selected.checked_rem_euclid(self.size(state)) {
-            self.selected = wraparound;
+        /* Moving the selected entry works as follows:
+         * 
+         * We are getting the potnetial selected entry index by 
+         * adding the direction to the current selected entry index.
+         * 
+         * Then, we do a checked Euclidian division of potential selected
+         * entry index over total number of entries on a page. Specifically,
+         * we are interested in the remainder part:
+         * 
+         * If the remainder is zero, and the direction is Direction::Forward,
+         * this means that the potential selected entry is on the next page.
+         *
+         * If the remainder is equal to the number of entries on a page minus one,
+         * and the direction is Direction::Backward, this means the potential
+         * selected entry is on the previous page. */
+        let potential_selected = self.selected as isize + direction as isize;
+        if let Some(rem) = potential_selected.checked_rem_euclid(self.size(state) as isize) {
+            self.selected = rem as usize;
             match direction {
                 Direction::Forward => {
                     if self.selected == 0 {
@@ -178,8 +192,9 @@ impl Page {
                     }
                 }
                 Direction::Backward => {
-                    if self.selected == (self.size(state) - 1) {
+                    if self.selected == self.size(state) - 1 {
                         self.turn(state, Direction::Backward);
+                        /* Reselect the last entry. */
                         self.selected = self.size(state) - 1;
                     }
                 }
@@ -303,7 +318,7 @@ mod pp {
         }
     }
 
-    fn current_page(current_page: i32, total_pages: i32) -> i32 {
+    fn current_page(current_page: usize, total_pages: usize) -> usize {
         if total_pages > 0 {
             current_page
         } else {
