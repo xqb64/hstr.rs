@@ -205,7 +205,7 @@ impl Page {
                          * has fewer entries than the one used in
                          * the calculation, we need to select the
                          * last entry again - now based on the count
-                         * of entries of the newly selected page. */ 
+                         * of entries of the newly selected page. */
                         self.selected = self.size(state) - 1;
                     }
                 }
