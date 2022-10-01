@@ -173,18 +173,20 @@ impl Page {
          * index by adding the direction to the current
          * selected entry index. Then, we do a checked
          * Euclidian division of potential selected entry
-         * index over total number of entries on a page.
-         * Specifically, we are interested in the remainder
-         * part:
+         * index over total number of entries on the current
+         * page. Specifically, we are interested in the
+         * remainder part:
          *
          * If the remainder is zero, and the direction is
          * Direction::Forward, this means that the potential
-         * selected entry is on the next page.
+         * selected entry is on the next page and we need to
+         * turn the page forward.
          *
          * If the remainder is equal to the number of entries
-         * on a page minus one, and the direction is
-         * Direction::Backward, this means the potential
-         * selected entry is on the previous page. */
+         * on a page minus one (adjusting for `self.selected`
+         * being 0-based), and the direction is Direction::Backward,
+         * this means the potential selected entry is on the
+         * previous page, and we need to turn the page backwards. */
         let potential_selected = self.selected as isize + direction as isize;
         if let Some(rem) = potential_selected.checked_rem_euclid(self.size(state) as isize) {
             self.selected = rem as usize;
