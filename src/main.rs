@@ -57,7 +57,7 @@ fn run(args: Opt) -> anyhow::Result<()> {
             nc::WchResult::Char(ch) => match ch {
                 CTRL_E => {
                     state.toggle_search_mode();
-                    user_interface.page.selected = 0;
+                    user_interface.page.set_selected(0);
                     user_interface.populate_screen(&state);
                 }
                 TAB => match user_interface.page.selected(&state) {
@@ -82,8 +82,8 @@ fn run(args: Opt) -> anyhow::Result<()> {
                 _ => {
                     let ch = std::char::from_u32(ch).unwrap();
                     state.query.insert_char(&user_interface, ch);
-                    user_interface.page.selected = 0;
-                    user_interface.page.value = 1;
+                    user_interface.page.set_selected(0);
+                    user_interface.page.set_page(1);
                     nc::clear();
                     state.search();
                     user_interface.populate_screen(&state);

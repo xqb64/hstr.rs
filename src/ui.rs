@@ -89,8 +89,8 @@ impl UserInterface {
 }
 
 pub struct Page {
-    pub value: i32,
-    pub selected: i32,
+    value: i32,
+    selected: i32,
 }
 
 impl Page {
@@ -115,6 +115,14 @@ impl Page {
 
     pub fn selected(&self, state: &State) -> Option<String> {
         self.contents(state).get(self.selected as usize).cloned()
+    }
+
+    pub fn set_selected(&mut self, index: i32) {
+        self.selected = index;
+    }
+
+    pub fn set_page(&mut self, page: i32) {
+        self.value = page;
     }
 
     pub fn turn(&mut self, state: &State, direction: Direction) {
@@ -149,7 +157,7 @@ impl Page {
         nc::clear();
         let next_page = self.value - 1 + direction as i32;
         let pages = self.total_pages(state);
-        self.value = match i32::checked_rem_euclid(next_page, pages) {
+        self.value = match next_page.checked_rem_euclid(pages) {
             Some(x) => x + 1,
             None => 1,
         }
@@ -161,7 +169,7 @@ impl Page {
 
     pub fn move_selected(&mut self, state: &State, direction: Direction) {
         self.selected += direction as i32;
-        if let Some(wraparound) = i32::checked_rem_euclid(self.selected, self.size(state)) {
+        if let Some(wraparound) = self.selected.checked_rem_euclid(self.size(state)) {
             self.selected = wraparound;
             match direction {
                 Direction::Forward => {
