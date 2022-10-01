@@ -196,6 +196,7 @@ impl Page {
                     }
                 }
                 Direction::Backward => {
+                    /* -1 because `self.selected` is 0-based. */
                     if self.selected == self.size(state) - 1 {
                         self.turn(state, Direction::Backward);
 
