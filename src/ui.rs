@@ -169,36 +169,39 @@ impl Page {
     pub fn move_selected(&mut self, state: &State, direction: Direction) {
         /* Moving the selected entry works as follows:
          *
-         * We are getting the potnetial selected entry index by
-         * adding the direction to the current selected entry index.
+         * We are getting the potential selected entry
+         * index by adding the direction to the current
+         * selected entry index. Then, we do a checked
+         * Euclidian division of potential selected entry
+         * index over total number of entries on a page.
+         * Specifically, we are interested in the remainder
+         * part:
          *
-         * Then, we do a checked Euclidian division of potential selected
-         * entry index over total number of entries on a page. Specifically,
-         * we are interested in the remainder part:
+         * If the remainder is zero, and the direction is
+         * Direction::Forward, this means that the potential
+         * selected entry is on the next page.
          *
-         * If the remainder is zero, and the direction is Direction::Forward,
-         * this means that the potential selected entry is on the next page.
-         *
-         * If the remainder is equal to the number of entries on a page minus one,
-         * and the direction is Direction::Backward, this means the potential
+         * If the remainder is equal to the number of entries
+         * on a page minus one, and the direction is
+         * Direction::Backward, this means the potential
          * selected entry is on the previous page. */
-        self.selected = (self.selected as isize + direction as isize)
-            .checked_rem_euclid(self.size(state) as isize)
-            .unwrap() as usize;
-        match direction {
-            Direction::Forward => {
-                if self.selected == 0 {
-                    self.turn(state, Direction::Forward);
+        if let Some(rem) = (self.selected as isize + direction as isize).checked_rem_euclid(self.size(state) as isize) {
+            self.selected = rem as usize;
+            match direction {
+                Direction::Forward => {
+                    if self.selected == 0 {
+                        self.turn(state, Direction::Forward);
+                    }
                 }
-            }
-            Direction::Backward => {
-                if self.selected == self.size(state) - 1 {
-                    self.turn(state, Direction::Backward);
-
-                    // Reselect the last entry.
-                    self.selected = self.size(state) - 1;
+                Direction::Backward => {
+                    if self.selected == self.size(state) - 1 {
+                        self.turn(state, Direction::Backward);
+    
+                        // Reselect the last entry.
+                        self.selected = self.size(state) - 1;
+                    }
                 }
-            }
+            }  
         }
     }
 }
