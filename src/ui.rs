@@ -182,21 +182,19 @@ impl Page {
          * If the remainder is equal to the number of entries on a page minus one,
          * and the direction is Direction::Backward, this means the potential
          * selected entry is on the previous page. */
-        let potential_selected = self.selected as isize + direction as isize;
-        if let Some(rem) = potential_selected.checked_rem_euclid(self.size(state) as isize) {
-            self.selected = rem as usize;
-            match direction {
-                Direction::Forward => {
-                    if self.selected == 0 {
-                        self.turn(state, Direction::Forward);
-                    }
+        self.selected = (self.selected as isize + direction as isize).checked_rem_euclid(self.size(state) as isize).unwrap() as usize;
+        match direction {
+            Direction::Forward => {
+                if self.selected == 0 {
+                    self.turn(state, Direction::Forward);
                 }
-                Direction::Backward => {
-                    if self.selected == self.size(state) - 1 {
-                        self.turn(state, Direction::Backward);
-                        /* Reselect the last entry. */
-                        self.selected = self.size(state) - 1;
-                    }
+            }
+            Direction::Backward => {
+                if self.selected == self.size(state) - 1 {
+                    self.turn(state, Direction::Backward);
+                    
+                    // Reselect the last entry.
+                    self.selected = self.size(state) - 1;
                 }
             }
         }
