@@ -72,7 +72,7 @@ impl UserInterface {
     }
 
     fn paint_selected(&self, entry: &str, index: usize) {
-        if index == self.page.selected as usize {
+        if index == self.page.selected {
             nc::attron(nc::COLOR_PAIR(2));
             nc::mvaddstr(index as i32 + 3, 1, &ljust(entry));
             nc::attroff(nc::COLOR_PAIR(2));
@@ -186,7 +186,8 @@ impl Page {
          * on a page minus one (adjusting for `self.selected`
          * being 0-based), and the direction is Direction::Backward,
          * this means the potential selected entry is on the
-         * previous page, and we need to turn the page backwards. */
+         * previous page, and we need to turn the page backwards.
+         */
         let potential_selected = self.selected as isize + direction as isize;
         if let Some(rem) = potential_selected.checked_rem_euclid(self.size(state) as isize) {
             self.selected = rem as usize;
