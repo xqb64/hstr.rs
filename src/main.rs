@@ -44,7 +44,7 @@ fn run(args: Opt) -> anyhow::Result<()> {
         state.search();
 
         for _ in 0..query.chars().count() {
-            user_interface.cursor.step(&state, Direction::Forward);
+            user_interface.move_cursor(&state, Direction::Forward);
         }
     }
 
@@ -57,17 +57,17 @@ fn run(args: Opt) -> anyhow::Result<()> {
             nc::WchResult::Char(ch) => match ch {
                 CTRL_E => {
                     state.toggle_search_mode();
-                    user_interface.page.set_selected(0);
+                    user_interface.set_highlighted(0);
                     user_interface.populate_screen(&state);
                 }
-                TAB => match user_interface.page.selected(&state) {
+                TAB => match user_interface.compute_highlighted(&state) {
                     Some(command) => {
                         io::echo(command);
                         break;
                     }
                     None => continue,
                 },
-                ENTER => match user_interface.page.selected(&state) {
+                ENTER => match user_interface.compute_highlighted(&state) {
                     Some(command) => {
                         io::echo(command + "\n");
                         break;
@@ -81,45 +81,43 @@ fn run(args: Opt) -> anyhow::Result<()> {
                 ESC => break,
                 _ => {
                     let ch = std::char::from_u32(ch).unwrap();
-                    state.query.insert_char(&user_interface, ch);
-                    user_interface.page.set_selected(0);
-                    user_interface.page.set_page(1);
+                    state.query.insert_char(user_interface.get_cursor_position(), ch);
+                    user_interface.set_highlighted(0);
+                    user_interface.set_page(1);
                     nc::clear();
                     state.search();
                     user_interface.populate_screen(&state);
-                    user_interface.cursor.step(&state, Direction::Forward);
+                    user_interface.move_cursor(&state, Direction::Forward);
                 }
             },
             nc::WchResult::KeyCode(code) => match code {
-                nc::KEY_LEFT => user_interface.cursor.step(&state, Direction::Backward),
-                nc::KEY_RIGHT => user_interface.cursor.step(&state, Direction::Forward),
+                nc::KEY_LEFT => user_interface.move_cursor(&state, Direction::Backward),
+                nc::KEY_RIGHT => user_interface.move_cursor(&state, Direction::Forward),
                 nc::KEY_UP => {
                     user_interface
-                        .page
-                        .move_selected(&state, Direction::Backward);
+                        .move_highlighted(&state, Direction::Backward);
                     user_interface.populate_screen(&state);
                 }
                 nc::KEY_DOWN => {
                     user_interface
-                        .page
-                        .move_selected(&state, Direction::Forward);
+                        .move_highlighted(&state, Direction::Forward);
                     user_interface.populate_screen(&state);
                 }
                 nc::KEY_BACKSPACE => {
                     if !state.query.text.is_empty() {
-                        state.query.remove_char(&user_interface);
+                        state.query.remove_char(user_interface.get_cursor_position());
                     }
                     nc::clear();
                     state.search();
                     user_interface.populate_screen(&state);
-                    user_interface.cursor.step(&state, Direction::Backward);
+                    user_interface.move_cursor(&state, Direction::Backward);
                 }
                 nc::KEY_NPAGE => {
-                    user_interface.page.turn(&state, Direction::Forward);
+                    user_interface.turn_page(&state, Direction::Forward);
                     user_interface.populate_screen(&state);
                 }
                 nc::KEY_PPAGE => {
-                    user_interface.page.turn(&state, Direction::Backward);
+                    user_interface.turn_page(&state, Direction::Backward);
                     user_interface.populate_screen(&state);
                 }
                 nc::KEY_RESIZE => {

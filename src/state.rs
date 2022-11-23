@@ -98,15 +98,15 @@ impl Query {
         }
     }
 
-    pub fn insert_char(&mut self, user_interface: &UserInterface, ch: char) {
+    pub fn insert_char(&mut self, cursor_position: usize, ch: char) {
         /* Inserts a character at the cursor position. */
-        let position = self.byte_position(user_interface.cursor.position);
+        let position = self.byte_position(cursor_position);
         self.text.insert(position, ch);
     }
 
-    pub fn remove_char(&mut self, user_interface: &UserInterface) {
+    pub fn remove_char(&mut self, cursor_position: usize) {
         /* If there is a character before the cursor, remove it. */
-        if let Some(char_at) = user_interface.cursor.position.checked_sub(1) {
+        if let Some(char_at) = cursor_position.checked_sub(1) {
             let position = self.byte_position(char_at);
             self.text.remove(position);
         }

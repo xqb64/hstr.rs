@@ -9,20 +9,24 @@ const LABEL: &str =
     "Type to filter, UP/DOWN move, LEFT/RIGHT move cursor, ENTER/TAB select, ESC quit";
 
 pub struct UserInterface {
-    pub page: Page,
-    pub cursor: Cursor,
+    cursor_position: usize,
+    page_count: usize,
+    page: usize,
+    highlighted: usize,
 }
 
 impl UserInterface {
     pub fn new() -> Self {
         Self {
-            page: Page::new(1),
-            cursor: Cursor::new(),
+            cursor_position: 0,
+            page_count: 0,
+            page: 1,
+            highlighted: 0,
         }
     }
 
     pub fn populate_screen(&self, state: &State) {
-        for (row_idx, cmd) in self.page.contents(state).iter().enumerate() {
+        for (row_idx, cmd) in self.get_page_contents(state).iter().enumerate() {
             // Make command fit the screen and print everything normally first
             let cmd = &cmd
                 .chars()
@@ -48,12 +52,12 @@ impl UserInterface {
                 }
             }
             // Finally, paint selection
-            self.paint_selected(cmd, row_idx);
+            self.paint_highlighted(cmd, row_idx);
         }
         self.paint_bars(state);
     }
 
-    fn substring_indices<'a>(&self, string: &'a str, substring: &'a str) -> Vec<usize> {
+    fn substring_indices<'b>(&self, string: &'b str, substring: &'b str) -> Vec<usize> {
         // Returns the indices of a substring within a string
         match Regex::new(substring) {
             Ok(r) => r.find_iter(string).flat_map(|m| m.range()).collect(),
@@ -71,8 +75,8 @@ impl UserInterface {
         }
     }
 
-    fn paint_selected(&self, entry: &str, index: usize) {
-        if index == self.page.selected {
+    fn paint_highlighted(&self, entry: &str, index: usize) {
+        if index == self.highlighted {
             nc::attron(nc::COLOR_PAIR(2));
             nc::mvaddstr(index as i32 + 3, 1, &ljust(entry));
             nc::attroff(nc::COLOR_PAIR(2));
@@ -82,50 +86,53 @@ impl UserInterface {
     fn paint_bars(&self, state: &State) {
         nc::mvaddstr(1, 1, LABEL);
         nc::attron(nc::COLOR_PAIR(3));
-        nc::mvaddstr(2, 1, &ljust(&status_bar(state, self)));
+        nc::mvaddstr(2, 1, &ljust(&self.status_bar(state)));
         nc::attroff(nc::COLOR_PAIR(3));
         nc::mvaddstr(0, 1, &top_bar(&state.query.text));
     }
-}
 
-pub struct Page {
-    value: usize,
-    selected: usize,
-}
-
-impl Page {
-    pub fn new(value: usize) -> Self {
-        Self { value, selected: 0 }
+    pub fn status_bar(&self, state: &State) -> String {
+        format!(
+            "- search:{} (C-e) - case:{} (C-t) - page {}/{} -",
+            search_mode(state.search_mode),
+            case(state.case_sensitivity),
+            self.current_page(),
+            self.compute_page_count(state),
+        )
     }
 
-    fn size(&self, state: &State) -> usize {
-        self.contents(state).len()
+    pub fn compute_page_count(&self, state: &State) -> usize {
+        state.search_results.chunks(nc::LINES() as usize - 3).len()
     }
 
-    fn contents(&self, state: &State) -> Vec<String> {
+    fn current_page(&self) -> usize {
+        if self.page_count > 0 {
+            self.page
+        } else {
+            0
+        }
+    }
+
+    fn compute_page_size(&self, state: &State) -> usize {
+        self.get_page_contents(state).len()
+    }
+
+    fn get_page_contents(&self, state: &State) -> Vec<String> {
         match state
             .search_results
             .chunks(nc::LINES() as usize - 3)
-            .nth(self.value as usize - 1)
+            .nth(self.page as usize - 1)
         {
             Some(cmds) => cmds.to_vec(),
             None => Vec::new(),
         }
     }
 
-    pub fn selected(&self, state: &State) -> Option<String> {
-        self.contents(state).get(self.selected as usize).cloned()
+    pub fn compute_highlighted(&self, state: &State) -> Option<String> {
+        self.get_page_contents(state).get(self.highlighted as usize).cloned()
     }
 
-    pub fn set_selected(&mut self, index: usize) {
-        self.selected = index;
-    }
-
-    pub fn set_page(&mut self, page: usize) {
-        self.value = page;
-    }
-
-    pub fn turn(&mut self, state: &State, direction: Direction) {
+    pub fn turn_page(&mut self, state: &State, direction: Direction) {
         /* Turning the page essentially works as follows:
          *
          * We are getting the potential page by subtracting 1
@@ -155,63 +162,106 @@ impl Page {
          * on page 1.
          */
         nc::clear();
-        let potential_page = (self.value - 1) as isize + (direction as isize);
-        self.value = match potential_page.checked_rem_euclid(self.total_pages(state) as isize) {
+        let potential_page = (self.page - 1) as isize + (direction as isize);
+        self.page = match potential_page.checked_rem_euclid(self.compute_page_count(state) as isize) {
             Some(x) => (x + 1) as usize,
             None => 1,
         }
     }
 
-    pub fn total_pages(&self, state: &State) -> usize {
-        state.search_results.chunks(nc::LINES() as usize - 3).len()
-    }
 
-    pub fn move_selected(&mut self, state: &State, direction: Direction) {
-        /* Moving the selected entry works as follows:
+    pub fn move_highlighted(&mut self, state: &State, direction: Direction) {
+        /* Moving the highlighted entry works as follows:
          *
-         * We are getting the potential selected entry
+         * We are getting the potential highlighted entry
          * index by adding the direction to the current
-         * selected entry index. Then, we do a checked
-         * Euclidian division of potential selected entry
+         * highlighted entry index. Then, we do a checked
+         * Euclidian division of potential highlighted entry
          * index over total number of entries on the current
          * page. Specifically, we are interested in the
          * remainder part:
          *
          * If the remainder is zero, and the direction is
          * Direction::Forward, this means that the potential
-         * selected entry is on the next page and we need to
+         * highlighted entry is on the next page and we need to
          * turn the page forward.
          *
          * If the remainder is equal to the number of entries
-         * on a page minus one (adjusting for `self.selected`
+         * on a page minus one (adjusting for `self.highlighted`
          * being 0-based), and the direction is Direction::Backward,
-         * this means the potential selected entry is on the
+         * this means the potential highlighted entry is on the
          * previous page, and we need to turn the page backwards.
          */
-        let potential_selected = self.selected as isize + direction as isize;
-        if let Some(rem) = potential_selected.checked_rem_euclid(self.size(state) as isize) {
-            self.selected = rem as usize;
+        let potential_highlighted = self.highlighted as isize + direction as isize;
+        if let Some(rem) = potential_highlighted.checked_rem_euclid(self.compute_page_size(state) as isize) {
+            self.highlighted = rem as usize;
             match direction {
                 Direction::Forward => {
-                    if self.selected == 0 {
-                        self.turn(state, Direction::Forward);
+                    if self.highlighted == 0 {
+                        self.turn_page(state, Direction::Forward);
                     }
                 }
                 Direction::Backward => {
-                    /* -1 because `self.selected` is 0-based. */
-                    if self.selected == self.size(state) - 1 {
-                        self.turn(state, Direction::Backward);
+                    /* -1 because `self.highlighted` is 0-based. */
+                    if self.highlighted == self.compute_page_size(state) - 1 {
+                        self.turn_page(state, Direction::Backward);
 
                         /* Because we might end up on a page that
                          * has fewer entries than the one used in
                          * the calculation, we need to select the
                          * last entry again - now based on the count
-                         * of entries of the newly selected page. */
-                        self.selected = self.size(state) - 1;
+                         * of entries of the newly highlighted page. */
+                        self.highlighted = self.compute_page_size(state) - 1;
                     }
                 }
             }
         }
+    }
+
+    pub fn get_highlighted(&self) -> usize {
+        self.highlighted
+    }
+
+    pub fn set_highlighted(&mut self, i: usize) {
+        self.highlighted = i;
+    }
+
+    pub fn set_page(&mut self, i: usize) { 
+        self.page = i;
+    }
+
+    pub fn move_cursor(&mut self, state: &State, direction: Direction) {
+        match direction {
+            Direction::Forward => {
+                if self.cursor_position < state.query.text.chars().count() {
+                    self.cursor_position += 1;
+                }
+            }
+            Direction::Backward => {
+                if self.cursor_position > 0 {
+                    self.cursor_position -= 1;
+                }
+            }
+        }
+
+        let prompt_length = pp::get_shell_prompt().chars().count();
+        let query_width: usize = state
+            .query
+            .text
+            .chars()
+            .take(self.cursor_position)
+            .map(|ch| ch.width().unwrap_or(0))
+            .sum();
+
+        nc::wmove(
+            nc::stdscr(),
+            0,
+            (prompt_length + 1 + 1 + query_width) as i32,
+        );
+    }
+
+    pub fn get_cursor_position(&self) -> usize { 
+        self.cursor_position
     }
 }
 
@@ -224,35 +274,7 @@ impl Cursor {
         Self { position: 0 }
     }
 
-    pub fn step(&mut self, state: &State, direction: Direction) {
-        match direction {
-            Direction::Forward => {
-                if self.position < state.query.text.chars().count() {
-                    self.position += 1;
-                }
-            }
-            Direction::Backward => {
-                if self.position > 0 {
-                    self.position -= 1;
-                }
-            }
-        }
 
-        let prompt_length = pp::get_shell_prompt().chars().count();
-        let query_width: usize = state
-            .query
-            .text
-            .chars()
-            .take(self.position)
-            .map(|ch| ch.width().unwrap_or(0))
-            .sum();
-
-        nc::wmove(
-            nc::stdscr(),
-            0,
-            (prompt_length + 1 + 1 + query_width) as i32,
-        );
-    }
 }
 
 pub mod curses {
@@ -269,7 +291,7 @@ pub mod curses {
     pub fn init_color_pairs() {
         nc::start_color();
         nc::init_pair(1, nc::COLOR_WHITE, nc::COLOR_BLACK); // normal
-        nc::init_pair(2, nc::COLOR_WHITE, nc::COLOR_GREEN); // highlighted-green (selected item)
+        nc::init_pair(2, nc::COLOR_WHITE, nc::COLOR_GREEN); // highlighted-green (highlighted item)
         nc::init_pair(3, nc::COLOR_BLACK, nc::COLOR_WHITE); // highlighted-white (status)
         nc::init_pair(5, nc::COLOR_RED, nc::COLOR_BLACK); // red (searched items)
         nc::init_pair(6, nc::COLOR_WHITE, nc::COLOR_RED); // higlighted-red
@@ -290,17 +312,6 @@ mod pp {
     use ncurses as nc;
     use std::env;
     use unicode_width::UnicodeWidthStr;
-
-    pub fn status_bar(state: &State, user_interface: &UserInterface) -> String {
-        let total_pages = user_interface.page.total_pages(state);
-        format!(
-            "- search:{} (C-e) - case:{} (C-t) - page {}/{} -",
-            search_mode(state.search_mode),
-            case(state.case_sensitivity),
-            current_page(user_interface.page.value, total_pages),
-            total_pages,
-        )
-    }
 
     pub fn top_bar(query: &str) -> String {
         format!("{} {}", get_shell_prompt(), query)
@@ -327,14 +338,6 @@ mod pp {
             "sensitive"
         } else {
             "insensitive"
-        }
-    }
-
-    fn current_page(current_page: usize, total_pages: usize) -> usize {
-        if total_pages > 0 {
-            current_page
-        } else {
-            0
         }
     }
 
