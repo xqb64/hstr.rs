@@ -129,7 +129,9 @@ impl UserInterface {
     }
 
     pub fn compute_highlighted(&self, state: &State) -> Option<String> {
-        self.get_page_contents(state).get(self.highlighted as usize).cloned()
+        self.get_page_contents(state)
+            .get(self.highlighted as usize)
+            .cloned()
     }
 
     pub fn turn_page(&mut self, state: &State, direction: Direction) {
@@ -163,12 +165,12 @@ impl UserInterface {
          */
         nc::clear();
         let potential_page = (self.page - 1) as isize + (direction as isize);
-        self.page = match potential_page.checked_rem_euclid(self.compute_page_count(state) as isize) {
+        self.page = match potential_page.checked_rem_euclid(self.compute_page_count(state) as isize)
+        {
             Some(x) => (x + 1) as usize,
             None => 1,
         }
     }
-
 
     pub fn move_highlighted(&mut self, state: &State, direction: Direction) {
         /* Moving the highlighted entry works as follows:
@@ -193,7 +195,9 @@ impl UserInterface {
          * previous page, and we need to turn the page backwards.
          */
         let potential_highlighted = self.highlighted as isize + direction as isize;
-        if let Some(rem) = potential_highlighted.checked_rem_euclid(self.compute_page_size(state) as isize) {
+        if let Some(rem) =
+            potential_highlighted.checked_rem_euclid(self.compute_page_size(state) as isize)
+        {
             self.highlighted = rem as usize;
             match direction {
                 Direction::Forward => {
@@ -218,15 +222,11 @@ impl UserInterface {
         }
     }
 
-    pub fn get_highlighted(&self) -> usize {
-        self.highlighted
-    }
-
     pub fn set_highlighted(&mut self, i: usize) {
         self.highlighted = i;
     }
 
-    pub fn set_page(&mut self, i: usize) { 
+    pub fn set_page(&mut self, i: usize) {
         self.page = i;
     }
 
@@ -260,21 +260,9 @@ impl UserInterface {
         );
     }
 
-    pub fn get_cursor_position(&self) -> usize { 
+    pub fn get_cursor_position(&self) -> usize {
         self.cursor_position
     }
-}
-
-pub struct Cursor {
-    pub position: usize,
-}
-
-impl Cursor {
-    pub fn new() -> Self {
-        Self { position: 0 }
-    }
-
-
 }
 
 pub mod curses {
@@ -307,8 +295,7 @@ pub mod curses {
 
 mod pp {
     /* Pretty printer */
-    use crate::state::{SearchMode, State};
-    use crate::ui::UserInterface;
+    use crate::state::SearchMode;
     use ncurses as nc;
     use std::env;
     use unicode_width::UnicodeWidthStr;

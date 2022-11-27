@@ -1,5 +1,4 @@
 use crate::hstr::{self, History, Shell};
-use crate::ui::UserInterface;
 use fuzzy_matcher::skim::SkimMatcherV2;
 use fuzzy_matcher::FuzzyMatcher;
 use regex::{escape, Regex, RegexBuilder};

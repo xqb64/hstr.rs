@@ -81,7 +81,9 @@ fn run(args: Opt) -> anyhow::Result<()> {
                 ESC => break,
                 _ => {
                     let ch = std::char::from_u32(ch).unwrap();
-                    state.query.insert_char(user_interface.get_cursor_position(), ch);
+                    state
+                        .query
+                        .insert_char(user_interface.get_cursor_position(), ch);
                     user_interface.set_highlighted(0);
                     user_interface.set_page(1);
                     nc::clear();
@@ -94,18 +96,18 @@ fn run(args: Opt) -> anyhow::Result<()> {
                 nc::KEY_LEFT => user_interface.move_cursor(&state, Direction::Backward),
                 nc::KEY_RIGHT => user_interface.move_cursor(&state, Direction::Forward),
                 nc::KEY_UP => {
-                    user_interface
-                        .move_highlighted(&state, Direction::Backward);
+                    user_interface.move_highlighted(&state, Direction::Backward);
                     user_interface.populate_screen(&state);
                 }
                 nc::KEY_DOWN => {
-                    user_interface
-                        .move_highlighted(&state, Direction::Forward);
+                    user_interface.move_highlighted(&state, Direction::Forward);
                     user_interface.populate_screen(&state);
                 }
                 nc::KEY_BACKSPACE => {
                     if !state.query.text.is_empty() {
-                        state.query.remove_char(user_interface.get_cursor_position());
+                        state
+                            .query
+                            .remove_char(user_interface.get_cursor_position());
                     }
                     nc::clear();
                     state.search();
