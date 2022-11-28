@@ -13,20 +13,22 @@ pub struct UserInterface {
     page_count: usize,
     page: usize,
     highlighted: usize,
+    pub state: State,
 }
 
 impl UserInterface {
-    pub fn new() -> Self {
-        Self {
+    pub fn new(query: &str) -> anyhow::Result<Self> {
+        Ok(Self {
             cursor_position: 0,
             page_count: 0,
             page: 1,
             highlighted: 0,
-        }
+            state: State::new(query)?,
+        })
     }
 
-    pub fn populate_screen(&self, state: &State) {
-        for (row_idx, cmd) in self.get_page_contents(state).iter().enumerate() {
+    pub fn populate_screen(&self) {
+        for (row_idx, cmd) in self.get_page_contents().iter().enumerate() {
             // Make command fit the screen and print everything normally first
             let cmd = &cmd
                 .chars()
@@ -35,9 +37,9 @@ impl UserInterface {
             nc::mvaddstr(row_idx as i32 + 3, 1, &ljust(cmd));
 
             // Paint matched chars, if any;
-            match state.search_mode {
+            match self.state.search_mode {
                 SearchMode::Exact | SearchMode::Regex => {
-                    let matches = self.substring_indices(cmd, &state.query.text);
+                    let matches = self.substring_indices(cmd, &self.state.query.text);
 
                     if !matches.is_empty() {
                         self.paint_matched_chars(cmd, matches, row_idx);
@@ -46,7 +48,7 @@ impl UserInterface {
                 SearchMode::Fuzzy => {
                     let matcher = SkimMatcherV2::default();
 
-                    if let Some(matches) = matcher.fuzzy_indices(cmd, &state.query.text) {
+                    if let Some(matches) = matcher.fuzzy_indices(cmd, &self.state.query.text) {
                         self.paint_matched_chars(cmd, matches.1, row_idx);
                     }
                 }
@@ -54,10 +56,10 @@ impl UserInterface {
             // Finally, paint selection
             self.paint_highlighted(cmd, row_idx);
         }
-        self.paint_bars(state);
+        self.paint_bars();
     }
 
-    fn substring_indices<'b>(&self, string: &'b str, substring: &'b str) -> Vec<usize> {
+    fn substring_indices<'a>(&self, string: &'a str, substring: &'a str) -> Vec<usize> {
         // Returns the indices of a substring within a string
         match Regex::new(substring) {
             Ok(r) => r.find_iter(string).flat_map(|m| m.range()).collect(),
@@ -83,26 +85,29 @@ impl UserInterface {
         }
     }
 
-    fn paint_bars(&self, state: &State) {
+    fn paint_bars(&self) {
         nc::mvaddstr(1, 1, LABEL);
         nc::attron(nc::COLOR_PAIR(3));
-        nc::mvaddstr(2, 1, &ljust(&self.status_bar(state)));
+        nc::mvaddstr(2, 1, &ljust(&self.status_bar()));
         nc::attroff(nc::COLOR_PAIR(3));
-        nc::mvaddstr(0, 1, &top_bar(&state.query.text));
+        nc::mvaddstr(0, 1, &top_bar(&self.state.query.text));
     }
 
-    pub fn status_bar(&self, state: &State) -> String {
+    pub fn status_bar(&self) -> String {
         format!(
             "- search:{} (C-e) - case:{} (C-t) - page {}/{} -",
-            search_mode(state.search_mode),
-            case(state.case_sensitivity),
+            search_mode(self.state.search_mode),
+            case(self.state.case_sensitivity),
             self.current_page(),
-            self.compute_page_count(state),
+            self.compute_page_count(),
         )
     }
 
-    pub fn compute_page_count(&self, state: &State) -> usize {
-        state.search_results.chunks(nc::LINES() as usize - 3).len()
+    pub fn compute_page_count(&self) -> usize {
+        self.state
+            .search_results
+            .chunks(nc::LINES() as usize - 3)
+            .len()
     }
 
     fn current_page(&self) -> usize {
@@ -113,12 +118,13 @@ impl UserInterface {
         }
     }
 
-    fn compute_page_size(&self, state: &State) -> usize {
-        self.get_page_contents(state).len()
+    fn compute_page_size(&self) -> usize {
+        self.get_page_contents().len()
     }
 
-    fn get_page_contents(&self, state: &State) -> Vec<String> {
-        match state
+    fn get_page_contents(&self) -> Vec<String> {
+        match self
+            .state
             .search_results
             .chunks(nc::LINES() as usize - 3)
             .nth(self.page as usize - 1)
@@ -128,13 +134,13 @@ impl UserInterface {
         }
     }
 
-    pub fn compute_highlighted(&self, state: &State) -> Option<String> {
-        self.get_page_contents(state)
+    pub fn compute_highlighted(&self) -> Option<String> {
+        self.get_page_contents()
             .get(self.highlighted as usize)
             .cloned()
     }
 
-    pub fn turn_page(&mut self, state: &State, direction: Direction) {
+    pub fn turn_page(&mut self, direction: Direction) {
         /* Turning the page essentially works as follows:
          *
          * We are getting the potential page by subtracting 1
@@ -165,14 +171,13 @@ impl UserInterface {
          */
         nc::clear();
         let potential_page = (self.page - 1) as isize + (direction as isize);
-        self.page = match potential_page.checked_rem_euclid(self.compute_page_count(state) as isize)
-        {
+        self.page = match potential_page.checked_rem_euclid(self.compute_page_count() as isize) {
             Some(x) => (x + 1) as usize,
             None => 1,
         }
     }
 
-    pub fn move_highlighted(&mut self, state: &State, direction: Direction) {
+    pub fn move_highlighted(&mut self, direction: Direction) {
         /* Moving the highlighted entry works as follows:
          *
          * We are getting the potential highlighted entry
@@ -196,26 +201,26 @@ impl UserInterface {
          */
         let potential_highlighted = self.highlighted as isize + direction as isize;
         if let Some(rem) =
-            potential_highlighted.checked_rem_euclid(self.compute_page_size(state) as isize)
+            potential_highlighted.checked_rem_euclid(self.compute_page_size() as isize)
         {
             self.highlighted = rem as usize;
             match direction {
                 Direction::Forward => {
                     if self.highlighted == 0 {
-                        self.turn_page(state, Direction::Forward);
+                        self.turn_page(Direction::Forward);
                     }
                 }
                 Direction::Backward => {
                     /* -1 because `self.highlighted` is 0-based. */
-                    if self.highlighted == self.compute_page_size(state) - 1 {
-                        self.turn_page(state, Direction::Backward);
+                    if self.highlighted == self.compute_page_size() - 1 {
+                        self.turn_page(Direction::Backward);
 
                         /* Because we might end up on a page that
                          * has fewer entries than the one used in
                          * the calculation, we need to select the
                          * last entry again - now based on the count
-                         * of entries of the newly highlighted page. */
-                        self.highlighted = self.compute_page_size(state) - 1;
+                         * of entries of the newly selected page. */
+                        self.highlighted = self.compute_page_size() - 1;
                     }
                 }
             }
@@ -230,10 +235,10 @@ impl UserInterface {
         self.page = i;
     }
 
-    pub fn move_cursor(&mut self, state: &State, direction: Direction) {
+    pub fn move_cursor(&mut self, direction: Direction) {
         match direction {
             Direction::Forward => {
-                if self.cursor_position < state.query.text.chars().count() {
+                if self.cursor_position < self.state.query.text.chars().count() {
                     self.cursor_position += 1;
                 }
             }
@@ -245,7 +250,8 @@ impl UserInterface {
         }
 
         let prompt_length = pp::get_shell_prompt().chars().count();
-        let query_width: usize = state
+        let query_width: usize = self
+            .state
             .query
             .text
             .chars()
@@ -379,7 +385,7 @@ mod tests {
         case("ping -c 10 www.google.com", "[0-9]+", vec![8, 9])
     )]
     fn matched_chars_indices(string: &str, substring: &str, expected: Vec<usize>) {
-        let user_interface = UserInterface::new();
+        let user_interface = UserInterface::new("").unwrap();
         assert_eq!(
             user_interface.substring_indices(string, substring),
             expected

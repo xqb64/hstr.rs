@@ -33,22 +33,21 @@ fn run(args: Opt) -> anyhow::Result<()> {
     }
 
     let query = args.query.unwrap_or_default();
-    let mut state = state::State::new(&query)?;
-    let mut user_interface = ui::UserInterface::new();
+    let mut user_interface = ui::UserInterface::new(&query).unwrap();
 
     ui::curses::init();
 
     /* If a search query was passed when hstr was started, search
      * and move the cursor to the end of the query. */
     if !query.is_empty() {
-        state.search();
+        user_interface.state.search();
 
         for _ in 0..query.chars().count() {
-            user_interface.move_cursor(&state, Direction::Forward);
+            user_interface.move_cursor(Direction::Forward);
         }
     }
 
-    user_interface.populate_screen(&state);
+    user_interface.populate_screen();
 
     loop {
         let user_input = nc::get_wch();
@@ -56,18 +55,18 @@ fn run(args: Opt) -> anyhow::Result<()> {
         match user_input.unwrap() {
             nc::WchResult::Char(ch) => match ch {
                 CTRL_E => {
-                    state.toggle_search_mode();
+                    user_interface.state.toggle_search_mode();
                     user_interface.set_highlighted(0);
-                    user_interface.populate_screen(&state);
+                    user_interface.populate_screen();
                 }
-                TAB => match user_interface.compute_highlighted(&state) {
+                TAB => match user_interface.compute_highlighted() {
                     Some(command) => {
                         io::echo(command);
                         break;
                     }
                     None => continue,
                 },
-                ENTER => match user_interface.compute_highlighted(&state) {
+                ENTER => match user_interface.compute_highlighted() {
                     Some(command) => {
                         io::echo(command + "\n");
                         break;
@@ -75,56 +74,58 @@ fn run(args: Opt) -> anyhow::Result<()> {
                     None => continue,
                 },
                 CTRL_T => {
-                    state.toggle_case();
-                    user_interface.populate_screen(&state);
+                    user_interface.state.toggle_case();
+                    user_interface.populate_screen();
                 }
                 ESC => break,
                 _ => {
                     let ch = std::char::from_u32(ch).unwrap();
-                    state
+                    user_interface
+                        .state
                         .query
                         .insert_char(user_interface.get_cursor_position(), ch);
                     user_interface.set_highlighted(0);
                     user_interface.set_page(1);
                     nc::clear();
-                    state.search();
-                    user_interface.populate_screen(&state);
-                    user_interface.move_cursor(&state, Direction::Forward);
+                    user_interface.state.search();
+                    user_interface.populate_screen();
+                    user_interface.move_cursor(Direction::Forward);
                 }
             },
             nc::WchResult::KeyCode(code) => match code {
-                nc::KEY_LEFT => user_interface.move_cursor(&state, Direction::Backward),
-                nc::KEY_RIGHT => user_interface.move_cursor(&state, Direction::Forward),
+                nc::KEY_LEFT => user_interface.move_cursor(Direction::Backward),
+                nc::KEY_RIGHT => user_interface.move_cursor(Direction::Forward),
                 nc::KEY_UP => {
-                    user_interface.move_highlighted(&state, Direction::Backward);
-                    user_interface.populate_screen(&state);
+                    user_interface.move_highlighted(Direction::Backward);
+                    user_interface.populate_screen();
                 }
                 nc::KEY_DOWN => {
-                    user_interface.move_highlighted(&state, Direction::Forward);
-                    user_interface.populate_screen(&state);
+                    user_interface.move_highlighted(Direction::Forward);
+                    user_interface.populate_screen();
                 }
                 nc::KEY_BACKSPACE => {
-                    if !state.query.text.is_empty() {
-                        state
+                    if !user_interface.state.query.text.is_empty() {
+                        user_interface
+                            .state
                             .query
                             .remove_char(user_interface.get_cursor_position());
                     }
                     nc::clear();
-                    state.search();
-                    user_interface.populate_screen(&state);
-                    user_interface.move_cursor(&state, Direction::Backward);
+                    user_interface.state.search();
+                    user_interface.populate_screen();
+                    user_interface.move_cursor(Direction::Backward);
                 }
                 nc::KEY_NPAGE => {
-                    user_interface.turn_page(&state, Direction::Forward);
-                    user_interface.populate_screen(&state);
+                    user_interface.turn_page(Direction::Forward);
+                    user_interface.populate_screen();
                 }
                 nc::KEY_PPAGE => {
-                    user_interface.turn_page(&state, Direction::Backward);
-                    user_interface.populate_screen(&state);
+                    user_interface.turn_page(Direction::Backward);
+                    user_interface.populate_screen();
                 }
                 nc::KEY_RESIZE => {
                     nc::clear();
-                    user_interface.populate_screen(&state);
+                    user_interface.populate_screen();
                 }
                 _ => {}
             },
