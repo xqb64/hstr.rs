@@ -13,6 +13,7 @@ impl FromBytes for History {
         bytes
             .split(|byte| *byte == 10) // split on newline
             .map(|line| String::from_utf8(line.to_vec()).unwrap())
+            .filter(|line| !line.is_empty())
             .collect()
     }
 }
