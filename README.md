@@ -1,6 +1,6 @@
 # hstr-rs
 
-![build status](https://github.com/xqb64/hstr-rs/workflows/CI/badge.svg)
+![build status](https://github.com/xqb64/hstr-rs/workflows/build/badge.svg)
 
 ![screenshot](screencast.gif)
 
