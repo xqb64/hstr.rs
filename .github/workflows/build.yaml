@@ -26,7 +26,7 @@ jobs:
     name: Test Suite
     runs-on: ubuntu-latest
     steps:
-      - run: sudo apt install libncurses5 libncurses5-dev libncursesw5 libncursesw5-dev libreadline5 libreadline-dev
+      - run: sudo apt install libncurses5 libncurses5-dev libncursesw5 libncursesw5-dev readline-common
       - name: Checkout sources
         uses: actions/checkout@v2
 

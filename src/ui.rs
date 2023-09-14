@@ -127,7 +127,7 @@ impl UserInterface {
             .state
             .search_results
             .chunks(nc::LINES() as usize - 3)
-            .nth(self.page as usize - 1)
+            .nth(self.page - 1)
         {
             Some(cmds) => cmds.to_vec(),
             None => Vec::new(),
@@ -135,9 +135,7 @@ impl UserInterface {
     }
 
     pub fn compute_highlighted(&self) -> Option<String> {
-        self.get_page_contents()
-            .get(self.highlighted as usize)
-            .cloned()
+        self.get_page_contents().get(self.highlighted).cloned()
     }
 
     pub fn turn_page(&mut self, direction: Direction) {
