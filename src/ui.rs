@@ -30,10 +30,6 @@ impl UserInterface {
     pub fn populate_screen(&self) {
         for (row_idx, cmd) in self.get_page_contents().iter().enumerate() {
             // Make command fit the screen and print everything normally first
-            let cmd = &cmd
-                .chars()
-                .take(nc::COLS() as usize - 2)
-                .collect::<String>();
             nc::mvaddstr(row_idx as i32 + 3, 1, &ljust(cmd));
 
             // Paint matched chars, if any;
@@ -86,7 +82,7 @@ impl UserInterface {
     }
 
     fn paint_bars(&self) {
-        nc::mvaddstr(1, 1, LABEL);
+        nc::mvaddstr(1, 1, &ljust(LABEL));
         nc::attron(nc::COLOR_PAIR(3));
         nc::mvaddstr(2, 1, &ljust(&self.status_bar()));
         nc::attroff(nc::COLOR_PAIR(3));
@@ -283,7 +279,7 @@ pub mod curses {
     pub fn init_color_pairs() {
         nc::start_color();
         nc::init_pair(1, nc::COLOR_WHITE, nc::COLOR_BLACK); // normal
-        nc::init_pair(2, nc::COLOR_WHITE, nc::COLOR_GREEN); // highlighted-green (highlighted item)
+        nc::init_pair(2, nc::COLOR_BLACK, nc::COLOR_GREEN); // highlighted-green (highlighted item)
         nc::init_pair(3, nc::COLOR_BLACK, nc::COLOR_WHITE); // highlighted-white (status)
         nc::init_pair(5, nc::COLOR_RED, nc::COLOR_BLACK); // red (searched items)
         nc::init_pair(6, nc::COLOR_WHITE, nc::COLOR_RED); // higlighted-red
@@ -333,8 +329,10 @@ mod pp {
     }
 
     pub fn ljust(string: &str) -> String {
-        let overhead = string.width() - string.chars().count();
-        format!("{0:1$}", string, nc::COLS() as usize - 2 - overhead)
+        let mut s = string.chars().take(nc::COLS() as usize - 2).collect::<String>();
+        let padding = " ".repeat((nc::COLS() as usize).saturating_sub(string.width() + 2));
+        s.push_str(padding.as_str());
+        s
     }
 }
 
