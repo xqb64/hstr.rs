@@ -329,7 +329,10 @@ mod pp {
     }
 
     pub fn ljust(string: &str) -> String {
-        let mut s = string.chars().take(nc::COLS() as usize - 2).collect::<String>();
+        let mut s = string
+            .chars()
+            .take(nc::COLS() as usize - 2)
+            .collect::<String>();
         let padding = " ".repeat((nc::COLS() as usize).saturating_sub(string.width() + 2));
         s.push_str(padding.as_str());
         s
