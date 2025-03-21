@@ -278,10 +278,11 @@ pub mod curses {
 
     pub fn init_color_pairs() {
         nc::start_color();
+        nc::use_default_colors();
         nc::init_pair(1, nc::COLOR_WHITE, nc::COLOR_BLACK); // normal
         nc::init_pair(2, nc::COLOR_BLACK, nc::COLOR_GREEN); // highlighted-green (highlighted item)
         nc::init_pair(3, nc::COLOR_BLACK, nc::COLOR_WHITE); // highlighted-white (status)
-        nc::init_pair(5, nc::COLOR_RED, nc::COLOR_BLACK); // red (searched items)
+        nc::init_pair(5, nc::COLOR_RED, -1); // red (searched items)
         nc::init_pair(6, nc::COLOR_WHITE, nc::COLOR_RED); // higlighted-red
     }
 
